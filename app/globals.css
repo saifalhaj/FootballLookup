@@ -1,0 +1,106 @@
+/* ============================================================
+   Nightmatch — floodlit-pitch design tokens
+   ============================================================ */
+:root {
+  /* Field (quiet, dark) */
+  --pitch: #08211c;
+  --pitch-2: #0b2a22;
+  --turf: #103428;
+  --turf-line: #1c5b44;
+  --scoreboard: #05130e;
+
+  /* Card (the hero surface: pitch chalk / paper) */
+  --chalk: #edf3ec;
+  --chalk-2: #e2ebe0;
+  --line-on-chalk: #d2ded0;
+  --ink: #0b1512;
+  --ink-2: #3a4c44;
+  --chalk-muted: #586a60;
+
+  /* Accents */
+  --floodlight: #ffb000;
+  --floodlight-soft: #ffca4d;
+  --sage: #86a596;
+  --card-red: #e4572e;
+
+  --radius: 4px;
+  --radius-lg: 10px;
+  --maxw: 940px;
+
+  --font-display: "Anton", sans-serif;
+  --font-body: "Archivo", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--chalk);
+  background-color: var(--pitch);
+  /* Floodlight glow from the top, deep-turf pooling at the base, and the
+     faintest mowing stripes so the field reads as a pitch, not a void. */
+  background-image: radial-gradient(
+      120% 75% at 50% -12%,
+      rgba(255, 176, 0, 0.12),
+      transparent 58%
+    ),
+    radial-gradient(100% 55% at 50% 118%, rgba(28, 91, 68, 0.28), transparent 72%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.014) 0 64px,
+      transparent 64px 128px
+    );
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--floodlight);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+::selection {
+  background: var(--floodlight);
+  color: var(--ink);
+}
+
+/* Respect reduced motion everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

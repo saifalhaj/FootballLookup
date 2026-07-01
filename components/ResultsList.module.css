@@ -1,0 +1,132 @@
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem auto 0;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+  text-align: left;
+  background: var(--pitch-2);
+  border: 1px solid var(--turf-line);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+}
+
+.row:hover {
+  border-color: var(--floodlight);
+  background: var(--turf);
+  transform: translateX(2px);
+}
+
+.avatar {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--turf);
+  border: 1px solid var(--turf-line);
+  display: grid;
+  place-items: center;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.initials {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--sage);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--chalk);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--sage);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex: none;
+  color: var(--floodlight);
+  font-size: 1.1rem;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.row:hover .chevron {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.empty {
+  max-width: 620px;
+  margin: 1.5rem auto 0;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--sage);
+  border: 1px dashed var(--turf-line);
+  border-radius: var(--radius-lg);
+}
+
+.empty strong {
+  color: var(--chalk);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skeleton {
+  height: 4.15rem;
+  border-style: dashed;
+  opacity: 0.5;
+  animation: pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}

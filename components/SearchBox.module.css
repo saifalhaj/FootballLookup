@@ -1,0 +1,83 @@
+.box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 540px;
+  margin: 1.75rem auto 0;
+  padding: 0 1.1rem;
+  height: 3.75rem;
+  background: var(--chalk);
+  border: 2px solid var(--chalk);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 18px 40px -20px rgba(0, 0, 0, 0.6),
+    0 0 60px -30px rgba(255, 176, 0, 0.5);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.box:focus-within {
+  border-color: var(--floodlight);
+  box-shadow:
+    0 0 0 1px var(--floodlight),
+    0 18px 40px -20px rgba(0, 0, 0, 0.6),
+    0 0 70px -24px rgba(255, 176, 0, 0.7);
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  color: var(--chalk-muted);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.input::placeholder {
+  color: var(--chalk-muted);
+  font-weight: 400;
+}
+
+.spinner {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+  border: 2px solid var(--line-on-chalk);
+  border-top-color: var(--floodlight);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.clear {
+  flex: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--chalk-2);
+  color: var(--ink-2);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.clear:hover {
+  background: var(--line-on-chalk);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
