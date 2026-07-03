@@ -52,6 +52,25 @@ Browser ──▶ /api/players/[id]        ──▶ provider.getProfile ──�
 - **Profile** merges the bio with one season of statistics and the transfer
   history, normalized into provider-agnostic types.
 
+### Broadcast graphics
+
+All charts are hand-rolled SVG/canvas — no chart libraries:
+
+- **Scoreboard** — split-flap cell entrance, count-up figures, LED dot-matrix
+  texture, scanline sweep ([PlayerCard](components/PlayerCard.tsx))
+- **Role radar** — per-90 profile on position-aware axes, scaled against elite
+  benchmarks (labeled as such; needs 270+ minutes) ([Radar](components/viz/Radar.tsx))
+- **Pitch map** — chalk-line pitch with the player's zone lit ([PitchMap](components/viz/PitchMap.tsx))
+- **Efficiency gauges** — donut rings for duel/dribble/shot success and
+  conversion ([Gauge](components/viz/Gauge.tsx))
+- **Transfer flow** — timeline with fee bars scaled to the biggest move; loans
+  and frees shown as chips ([TransferFlow](components/viz/TransferFlow.tsx))
+- **Hero** — floodlight power-on sequence with canvas dust particles ([Dust](components/viz/Dust.tsx))
+
+Sections reveal on scroll (IntersectionObserver); every animation — CSS and
+JS-driven — respects `prefers-reduced-motion`. The viz math lives in
+[`lib/viz.ts`](lib/viz.ts) with its own self-check (`npx tsx lib/viz.test.ts`).
+
 ### Position-aware stats
 
 The card detects the player's role and headlines the stats that matter, on a

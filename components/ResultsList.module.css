@@ -87,7 +87,8 @@
   transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
-.row:hover .chevron {
+.row:hover .chevron,
+.row:focus-visible .chevron {
   opacity: 1;
   transform: translateX(0);
 }
@@ -104,6 +105,17 @@
 
 .empty strong {
   color: var(--chalk);
+}
+
+.enter {
+  animation: fadeUp 0.45s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 
 .srOnly {

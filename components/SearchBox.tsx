@@ -6,9 +6,10 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   busy?: boolean;
+  inputRef?: React.Ref<HTMLInputElement>;
 };
 
-export default function SearchBox({ value, onChange, busy }: Props) {
+export default function SearchBox({ value, onChange, busy, inputRef }: Props) {
   return (
     <div className={styles.box}>
       <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden fill="none">
@@ -16,6 +17,7 @@ export default function SearchBox({ value, onChange, busy }: Props) {
         <path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
       <input
+        ref={inputRef}
         className={styles.input}
         type="text"
         value={value}

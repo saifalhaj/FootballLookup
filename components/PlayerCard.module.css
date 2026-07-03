@@ -31,6 +31,30 @@
   pointer-events: none;
 }
 
+/* ---------- Scroll-reveal shared state ---------- */
+.scoreboard,
+.role,
+.efficiency,
+.bio,
+.secondary,
+.transfers {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.scoreboard[data-in],
+.role[data-in],
+.efficiency[data-in],
+.bio[data-in],
+.secondary[data-in],
+.transfers[data-in] {
+  opacity: 1;
+  transform: none;
+}
+
 /* ---------- Header ---------- */
 .head {
   position: relative;
@@ -162,14 +186,46 @@
 }
 
 .board {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
-  background: var(--scoreboard);
-  border: 1px solid #0d2a20;
-  border-radius: 10px;
+  background-color: var(--scoreboard);
+  background-image: radial-gradient(rgba(255, 176, 0, 0.05) 1px, transparent 1.3px);
+  background-size: 7px 7px;
+  border: 1px solid var(--panel-line);
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  perspective: 700px;
 }
 
+/* Scanline sweep over the LED board. */
+.board::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.045) 47%,
+    rgba(255, 255, 255, 0.09) 50%,
+    transparent 56%
+  );
+  background-size: 100% 220%;
+  background-repeat: no-repeat;
+  animation: scan 7s linear infinite;
+}
+
+@keyframes scan {
+  from {
+    background-position: 0 -120%;
+  }
+  to {
+    background-position: 0 220%;
+  }
+}
+
+/* Split-flap entrance for each cell. */
 .cell {
   display: flex;
   flex-direction: column;
@@ -178,6 +234,17 @@
   text-align: center;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transform: rotateX(-88deg);
+  transform-origin: top;
+  opacity: 0;
+  transition:
+    transform 0.55s cubic-bezier(0.2, 0.7, 0.25, 1),
+    opacity 0.35s ease;
+}
+
+.scoreboard[data-in] .cell {
+  transform: none;
+  opacity: 1;
 }
 
 .figure {
@@ -186,6 +253,7 @@
   line-height: 1;
   letter-spacing: 0.02em;
   color: var(--floodlight);
+  text-shadow: 0 0 14px rgba(255, 176, 0, 0.35);
   font-variant-numeric: tabular-nums;
 }
 
@@ -207,11 +275,51 @@
   font-size: 0.92rem;
 }
 
-/* ---------- Bio ---------- */
-.bio {
+/* ---------- Role profile ---------- */
+.role,
+.efficiency,
+.bio,
+.secondary,
+.transfers,
+.marketValue {
   margin-top: clamp(1.25rem, 3vw, 1.75rem);
   padding-top: 1.25rem;
   border-top: 1px solid var(--line-on-chalk);
+}
+
+.roleGrid {
+  display: grid;
+  grid-template-columns: minmax(150px, 190px) 1fr;
+  gap: 0.9rem;
+  margin-top: 0.9rem;
+  align-items: stretch;
+}
+
+@media (max-width: 560px) {
+  .roleGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.footnote {
+  margin-top: 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+  color: var(--chalk-muted);
+}
+
+/* ---------- Efficiency ---------- */
+.gaugeRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+/* ---------- Bio ---------- */
+.bio {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.9rem 1.25rem;
@@ -237,15 +345,7 @@
   color: var(--ink);
 }
 
-/* ---------- Secondary + section shared ---------- */
-.secondary,
-.transfers,
-.marketValue {
-  margin-top: clamp(1.25rem, 3vw, 1.75rem);
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--line-on-chalk);
-}
-
+/* ---------- Section heads ---------- */
 .sectionHead {
   font-size: 0.95rem;
   font-weight: 700;
@@ -262,6 +362,7 @@
   color: var(--chalk-muted);
 }
 
+/* ---------- Secondary stats ---------- */
 .secondaryGrid {
   margin-top: 0.9rem;
   display: grid;
@@ -276,6 +377,16 @@
   padding: 0.6rem 0.7rem;
   background: var(--chalk-2);
   border-radius: 6px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.45s ease,
+    transform 0.45s ease;
+}
+
+.secondary[data-in] .secItem {
+  opacity: 1;
+  transform: none;
 }
 
 .secValue {
@@ -292,74 +403,6 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--chalk-muted);
-}
-
-/* ---------- Transfers ---------- */
-.timeline {
-  list-style: none;
-  padding: 0;
-  margin: 0.9rem 0 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.move {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.7rem 0;
-  border-bottom: 1px solid var(--line-on-chalk);
-}
-
-.move:last-child {
-  border-bottom: none;
-}
-
-.moveYear {
-  flex: none;
-  width: 3rem;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  color: var(--floodlight);
-}
-
-.moveTeams {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-  color: var(--ink);
-}
-
-.team {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.team img {
-  width: 1.15rem;
-  height: 1.15rem;
-  object-fit: contain;
-}
-
-.arrow {
-  color: var(--chalk-muted);
-}
-
-.fee {
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.03em;
-  color: var(--ink-2);
-  background: var(--chalk-2);
-  padding: 0.25rem 0.55rem;
-  border-radius: 999px;
 }
 
 .muted {
@@ -399,7 +442,9 @@
   color: var(--ink-2);
   font-weight: 600;
   font-size: 0.85rem;
-  transition: border-color 0.16s ease, color 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    color 0.16s ease;
 }
 
 .back:hover {

@@ -7,9 +7,65 @@
 
 /* ---------- Hero ---------- */
 .hero {
+  position: relative;
+  overflow: hidden;
   padding: clamp(2rem, 9vw, 6rem) 0 clamp(1.5rem, 4vw, 2.5rem);
   text-align: center;
   transition: padding 0.4s ease;
+}
+
+/* Floodlight beams flickering on at kickoff. */
+.beams {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.8;
+  animation: lampOn 1.5s steps(1, end) both;
+}
+
+.beams::before,
+.beams::after {
+  content: "";
+  position: absolute;
+  top: -32%;
+  width: 52%;
+  height: 135%;
+  background: radial-gradient(closest-side, rgba(255, 176, 0, 0.13), transparent 72%);
+  filter: blur(2px);
+}
+
+.beams::before {
+  left: -8%;
+  transform: rotate(16deg);
+}
+
+.beams::after {
+  right: -8%;
+  transform: rotate(-16deg);
+}
+
+@keyframes lampOn {
+  0% {
+    opacity: 0;
+  }
+  9% {
+    opacity: 0.65;
+  }
+  14% {
+    opacity: 0.08;
+  }
+  24% {
+    opacity: 0.85;
+  }
+  30% {
+    opacity: 0.18;
+  }
+  42% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0.8;
+  }
 }
 
 .heroCompact {
@@ -18,15 +74,18 @@
 }
 
 .eyebrow {
+  position: relative;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.32em;
   text-transform: uppercase;
   color: var(--floodlight);
+  animation: fadeUp 0.6s ease both;
 }
 
 .title {
+  position: relative;
   font-family: var(--font-display);
   font-weight: 400;
   font-size: clamp(3rem, 12vw, 6.5rem);
@@ -37,16 +96,43 @@
   color: var(--chalk);
 }
 
-.title span {
+/* Each word rises like a stadium board flipping over. */
+.w {
+  display: inline-block;
+  animation: wordRise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes wordRise {
+  from {
+    opacity: 0;
+    transform: translateY(0.55em);
+  }
+}
+
+.amber {
   color: var(--floodlight);
   text-shadow: 0 0 42px rgba(255, 176, 0, 0.35);
 }
 
 .lede {
+  position: relative;
   max-width: 46ch;
   margin: 1rem auto 0;
   color: var(--sage);
   font-size: clamp(0.95rem, 2.2vw, 1.05rem);
+  animation: fadeUp 0.6s ease 0.35s both;
+}
+
+.searchIn {
+  position: relative;
+  animation: fadeUp 0.6s ease 0.45s both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
 }
 
 .heroCompact .title {
@@ -58,12 +144,14 @@
 
 /* ---------- Examples ---------- */
 .examples {
+  position: relative;
   margin-top: 1.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
   justify-content: center;
+  animation: fadeUp 0.6s ease 0.55s both;
 }
 
 .examplesLabel {
@@ -100,6 +188,11 @@
 /* ---------- Card slot + loading / errors ---------- */
 .cardSlot {
   scroll-margin-top: 1rem;
+}
+
+/* Programmatic-only focus target (receives focus when results unmount). */
+.cardSlot:focus {
+  outline: none;
 }
 
 .loading {

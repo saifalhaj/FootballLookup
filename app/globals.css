@@ -8,6 +8,7 @@
   --turf: #103428;
   --turf-line: #1c5b44;
   --scoreboard: #05130e;
+  --panel-line: #0d2a20;
 
   /* Card (the hero surface: pitch chalk / paper) */
   --chalk: #edf3ec;
@@ -93,14 +94,17 @@ button {
   color: var(--ink);
 }
 
-/* Respect reduced motion everywhere. */
+/* Respect reduced motion everywhere (durations AND delays, so staggered
+   entrances resolve instantly instead of trickling in). */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
     scroll-behavior: auto !important;
   }
 }

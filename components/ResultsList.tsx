@@ -48,7 +48,7 @@ export default function ResultsList({ results, busy, query, onSelect }: Props) {
 
   return (
     <ul className={styles.list}>
-      {results.map((p) => {
+      {results.map((p, i) => {
         const meta = [
           POSITION_LABEL[p.position],
           p.nationality,
@@ -57,7 +57,11 @@ export default function ResultsList({ results, busy, query, onSelect }: Props) {
           .filter(Boolean)
           .join("  ·  ");
         return (
-          <li key={p.id}>
+          <li
+            key={p.id}
+            className={styles.enter}
+            style={{ animationDelay: `${Math.min(i * 45, 400)}ms` }}
+          >
             <button className={styles.row} type="button" onClick={() => onSelect(p.id)}>
               <span className={styles.avatar}>
                 {p.photo ? (

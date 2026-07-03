@@ -5,6 +5,7 @@ import type { PlayerSummary, PlayerProfile } from "@/lib/providers/types";
 import SearchBox from "@/components/SearchBox";
 import ResultsList from "@/components/ResultsList";
 import PlayerCard from "@/components/PlayerCard";
+import Dust from "@/components/viz/Dust";
 import styles from "./page.module.css";
 
 const EXAMPLES = ["Haaland", "Bellingham", "Rodri", "Vinicius"];
@@ -21,6 +22,7 @@ export default function Home() {
   const [profileError, setProfileError] = useState<string | null>(null);
 
   const cardRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   // Debounced live search.
   useEffect(() => {
@@ -62,9 +64,14 @@ export default function Home() {
     setProfile(null);
     setProfileError(null);
     setLoadingProfile(true);
-    requestAnimationFrame(() =>
-      cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
+    // Move focus into the card slot (the results list is about to unmount
+    // under the focused row, which would drop focus to <body>).
+    cardRef.current?.focus({ preventScroll: true });
+    requestAnimationFrame(() => {
+      // An explicit "smooth" ignores the CSS reduced-motion kill rule — pick at call time.
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      cardRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    });
     (async () => {
       try {
         const res = await fetch(`/api/players/${id}`);
@@ -83,6 +90,8 @@ export default function Home() {
     setSelectedId(null);
     setProfile(null);
     setProfileError(null);
+    // The card (with its "New search" button) unmounts — hand focus to search.
+    searchRef.current?.focus();
   };
 
   const showResults = query.trim().length >= 3 && !selectedId;
@@ -90,23 +99,34 @@ export default function Home() {
   return (
     <main className={styles.main}>
       <header className={`${styles.hero} ${selectedId ? styles.heroCompact : ""}`}>
+        <div className={styles.beams} aria-hidden />
+        <Dust />
         <p className={styles.eyebrow}>Football player lookup</p>
         <h1 className={styles.title}>
-          Under the <span>floodlights</span>
+          <span className={styles.w}>Under</span>{" "}
+          <span className={styles.w} style={{ animationDelay: "0.12s" }}>
+            the
+          </span>{" "}
+          <span className={`${styles.w} ${styles.amber}`} style={{ animationDelay: "0.24s" }}>
+            floodlights
+          </span>
         </h1>
         <p className={styles.lede}>
           Search any footballer for a matchday profile — bio, club, position-aware
           season stats, and transfer history.
         </p>
 
-        <SearchBox
-          value={query}
-          onChange={(v) => {
-            setQuery(v);
-            if (selectedId) clearSelection();
-          }}
-          busy={searching}
-        />
+        <div className={styles.searchIn}>
+          <SearchBox
+            value={query}
+            onChange={(v) => {
+              setQuery(v);
+              if (selectedId) clearSelection();
+            }}
+            busy={searching}
+            inputRef={searchRef}
+          />
+        </div>
 
         {!query && (
           <div className={styles.examples}>
@@ -142,7 +162,7 @@ export default function Home() {
         </section>
       )}
 
-      <div ref={cardRef} className={styles.cardSlot}>
+      <div ref={cardRef} className={styles.cardSlot} tabIndex={-1}>
         {selectedId &&
           (loadingProfile ? (
             <div className={styles.loading} role="status">
