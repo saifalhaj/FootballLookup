@@ -21,27 +21,13 @@ export function flagOf(team: string | null): string {
   return FLAGS[team] ?? "⚽";
 }
 
-/** Shorten StatsBomb's full legal names to something fan-facing where we can. */
-const KNOWN_AS: Record<string, string> = {
-  "Lionel Andrés Messi Cuccittini": "Lionel Messi",
-  "Kylian Mbappé Lottin": "Kylian Mbappé",
-  "Julián Álvarez": "Julián Álvarez",
-  "Neymar da Silva Santos Júnior": "Neymar",
-  "Bukayo Saka": "Bukayo Saka",
-  "Cody Mathès Gakpo": "Cody Gakpo",
-  "Enner Remberto Valencia Lastra": "Enner Valencia",
-  "Richarlison de Andrade": "Richarlison",
-  "Marcus Thuram": "Marcus Thuram",
-  "Olivier Giroud": "Olivier Giroud",
-};
-
+/**
+ * The bake already stores StatsBomb's `player_nickname` — the name fans use.
+ * Don't shorten legal names here: Spanish naming puts the paternal surname
+ * second-to-last, so "Nahuel Molina Lucero" would wrongly become "Nahuel Lucero".
+ */
 export function nameOf(player: string | null): string {
-  if (!player) return "Unknown";
-  if (KNOWN_AS[player]) return KNOWN_AS[player];
-  // Fall back to "First Last" from a long legal name.
-  const parts = player.split(" ");
-  if (parts.length <= 2) return player;
-  return `${parts[0]} ${parts[parts.length - 1]}`;
+  return player ?? "Unknown";
 }
 
 const M_TO_YD = 1.09361;
@@ -100,32 +86,60 @@ const STAGE_WEIGHT: Record<string, number> = {
   "Group Stage": 0.22,
 };
 
-/**
- * Curate the tournament's most spectacular goals for the guided tour. Rewards
- * long range and improbability (low xG), lifts knockout-round drama, and plays
- * down penalties. Returns goal indices, best first.
- */
-export function computeHighlights(goals: Goal[], n = 12): number[] {
-  const scored = goals.map((g, i) => {
-    const yd = distanceYards(g);
-    const improb = 1 - (g.xg ?? 0.3);
-    const dist = Math.min(1, yd / 32);
-    const stage = STAGE_WEIGHT[g.stage ?? ""] ?? 0.2;
-    const penalty = g.pen ? 0.7 : 0;
-    return { i, score: improb * 1.0 + dist * 1.35 + stage * 0.6 - penalty };
-  });
-  scored.sort((a, b) => b.score - a.score);
+function spectacleOf(g: Goal): number {
+  const yd = distanceYards(g);
+  const improb = 1 - (g.xg ?? 0.3);
+  const dist = Math.min(1, yd / 32);
+  const stage = STAGE_WEIGHT[g.stage ?? ""] ?? 0.2;
+  const penalty = g.pen ? 0.7 : 0;
+  return improb * 1.0 + dist * 1.35 + stage * 0.6 - penalty;
+}
 
-  // Keep it varied — at most 2 goals from any one scorer.
+/**
+ * Curate the guided tour. Two rules:
+ *  1. Every goal of the Final earns a place — it's the game everyone remembers,
+ *     and the raw "spectacle" maths would drop Messi's and Mbappé's penalties.
+ *  2. The rest are the most spectacular strikes: long range + improbable (low
+ *     xG) + knockout drama, capped at 2 per scorer so it stays varied.
+ * Ordered as a crescendo — the screamers first, the Final last, in order.
+ */
+export function computeHighlights(goals: Goal[], n = 14): number[] {
+  const finalIds = goals
+    .map((g, i) => ({ g, i }))
+    .filter((x) => x.g.stage === "Final")
+    .sort((a, b) => (a.g.minute ?? 0) - (b.g.minute ?? 0))
+    .map((x) => x.i);
+  const isFinal = new Set(finalIds);
+
+  const rest = goals
+    .map((g, i) => ({ i, score: spectacleOf(g) }))
+    .filter((x) => !isFinal.has(x.i))
+    .sort((a, b) => b.score - a.score);
+
   const perPlayer = new Map<string, number>();
   const picked: number[] = [];
-  for (const s of scored) {
+  const room = Math.max(0, n - finalIds.length);
+  for (const s of rest) {
     const p = goals[s.i].player ?? "?";
     const c = perPlayer.get(p) ?? 0;
     if (c >= 2) continue;
     perPlayer.set(p, c + 1);
     picked.push(s.i);
-    if (picked.length >= n) break;
+    if (picked.length >= room) break;
   }
-  return picked;
+  return [...picked, ...finalIds];
+}
+
+/** Every nation that scored, for the team picker. */
+export function teamsWithGoals(goals: Goal[]): string[] {
+  return [...new Set(goals.map((g) => g.team).filter(Boolean) as string[])].sort();
+}
+
+/** One nation's goals, in the order they scored them — their run through the cup. */
+export function goalsForTeam(goals: Goal[], team: string): number[] {
+  return goals
+    .map((g, i) => ({ g, i }))
+    .filter((x) => x.g.team === team)
+    .sort((a, b) => (a.g.minute ?? 0) - (b.g.minute ?? 0))
+    .map((x) => x.i);
 }

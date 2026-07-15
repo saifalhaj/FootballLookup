@@ -70,10 +70,26 @@ async function main() {
 
     let done = 0;
     await pool(ids, 6, async (id) => {
-      const events = await getJSON(`${BASE}/events/${id}.json`);
+      // Lineups carry `player_nickname` — the name fans actually use ("Nahuel
+      // Molina"), versus the legal name on the event ("Nahuel Molina Lucero").
+      // Never try to shorten these by hand: Spanish names put the paternal
+      // surname second-to-last, so "first + last token" yields "Nahuel Lucero".
+      const [events, lineups] = await Promise.all([
+        getJSON(`${BASE}/events/${id}.json`),
+        getJSON(`${BASE}/lineups/${id}.json`).catch(() => []),
+      ]);
+      const nick = new Map();
+      for (const t of lineups) {
+        for (const p of t.lineup ?? []) nick.set(p.player_id, p.player_nickname || p.player_name);
+      }
       const info = minfo.get(id) ?? { home: null, away: null, stage: null };
       for (const e of events) {
         if (e.type?.name !== "Shot" || e.shot?.outcome?.name !== "Goal") continue;
+        // Period 5 is the penalty shootout. Those kicks are not goals — they
+        // don't count towards the score, and they'd pile identical spot-kick
+        // trajectories into the galaxy. (Excluding them takes 2022 from 195 to
+        // the real 172.)
+        if (e.period === 5) continue;
         const loc = e.location;
         const end = e.shot.end_location;
         if (!loc || !end) continue;
@@ -88,7 +104,7 @@ async function main() {
           ox: +((loc[1] - 40) * YARD).toFixed(3),
           oz: +((120 - loc[0]) * YARD).toFixed(3),
           xg: e.shot.statsbomb_xg != null ? +e.shot.statsbomb_xg.toFixed(3) : null,
-          player: e.player?.name ?? null,
+          player: nick.get(e.player?.id) ?? e.player?.name ?? null,
           team,
           opponent,
           stage: info.stage,

@@ -65,16 +65,33 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
   text-transform: uppercase; color: var(--ink-dim);
 }
 
-/* ---- top-right toggle: tour <-> all 195 ---- */
-.toggle {
+/* ---- top-right controls: team picker + tour/all toggle ---- */
+.controls {
   position: absolute; top: clamp(20px, 4vw, 46px); right: clamp(20px, 4vw, 46px);
-  pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; pointer-events: auto;
+}
+.toggle, .picker {
+  cursor: pointer;
   font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink-dim); background: rgba(15, 24, 38, 0.55); border: 1px solid var(--line-2);
-  padding: 9px 14px; border-radius: 100px; backdrop-filter: blur(6px);
+  padding: 9px 14px; border-radius: 100px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   transition: color .2s, border-color .2s;
 }
-.toggle:hover { color: var(--amber); border-color: var(--amber); }
+.toggle:hover, .picker:hover { color: var(--amber); border-color: var(--amber); }
+.picker {
+  appearance: none; -webkit-appearance: none;
+  padding-right: 30px; max-width: 190px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%),
+                    linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%);
+  background-position: right 15px top 17px, right 10px top 17px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.picker:focus-visible, .toggle:focus-visible, .card-nav button:focus-visible {
+  outline: 2px solid var(--amber); outline-offset: 2px;
+}
+.picker option { background: #0f1826; color: var(--ink); text-transform: none; }
 
 /* ---- fan-facing goal card ---- */
 .card {
@@ -119,6 +136,12 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
 
 @media (max-width: 720px) {
   .sub, .legend { display: none; }
-  .card { flex-wrap: wrap; gap: 12px; }
-  .card-flag { font-size: 2rem; }
+  .card { flex-wrap: wrap; gap: 12px; padding: 13px 14px; }
+  .card-flag { font-size: 1.9rem; }
+  .card-body { flex: 1 1 100%; order: 1; }
+  .card-nav { flex: 1 1 100%; order: 2; justify-content: space-between; }
+  .controls { top: auto; bottom: calc(clamp(18px, 4vw, 40px) + 168px); right: 18px; left: 18px; justify-content: flex-end; }
+  .picker { max-width: 150px; }
+  .title { font-size: clamp(2rem, 12vw, 3rem); }
+  .credit { display: none; }
 }

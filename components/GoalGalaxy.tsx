@@ -112,10 +112,12 @@ function Scene({
   goals,
   highlights,
   focusId,
+  reduce,
 }: {
   goals: Goal[];
   highlights: Set<number>;
   focusId: number | null;
+  reduce: boolean;
 }) {
   const arcs = useMemo(() => buildArcs(goals), [goals]);
   const t0 = useRef<number | null>(null);
@@ -137,14 +139,14 @@ function Scene({
     if (t0.current === null) t0.current = clock.elapsedTime;
     const time = clock.elapsedTime - t0.current;
     for (const a of arcs) {
-      // One-time draw-in; then hold.
-      const p = Math.min(1, Math.max(0, (time - a.delay) / a.dur));
+      // One-time draw-in; then hold. Reduced motion skips straight to drawn.
+      const p = reduce ? 1 : Math.min(1, Math.max(0, (time - a.delay) / a.dur));
       a.line.geometry.setDrawRange(0, Math.floor(p * a.count));
       // Ease opacity toward its target so focus changes glide.
-      a.mat.opacity += (a.targetOp - a.mat.opacity) * 0.12;
+      a.mat.opacity += (a.targetOp - a.mat.opacity) * (reduce ? 1 : 0.12);
     }
     if (marker.current) {
-      const s = 1 + Math.sin(clock.elapsedTime * 3) * 0.18; // gentle pulse
+      const s = reduce ? 1 : 1 + Math.sin(clock.elapsedTime * 3) * 0.18;
       marker.current.scale.setScalar(s);
     }
   });
@@ -177,6 +179,16 @@ export default function GoalGalaxy({
   focusId: number | null;
 }) {
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const [reduce, setReduce] = useState(false);
+
+  useEffect(() => {
+    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduce(m.matches);
+    sync();
+    m.addEventListener("change", sync);
+    return () => m.removeEventListener("change", sync);
+  }, []);
+
   useEffect(() => {
     const update = () => {
       const d = document.documentElement;
@@ -204,11 +216,11 @@ export default function GoalGalaxy({
       >
         <color attach="background" args={[0.024, 0.035, 0.055]} />
         <fog attach="fog" args={[0x060910, 26, 52]} />
-        <Scene goals={goals} highlights={highlights} focusId={focusId} />
+        <Scene goals={goals} highlights={highlights} focusId={focusId} reduce={reduce} />
         <OrbitControls
           target={[0, 1.2, 0.2]}
           enablePan={false}
-          autoRotate
+          autoRotate={!reduce}
           autoRotateSpeed={0.24}
           minDistance={10}
           maxDistance={34}

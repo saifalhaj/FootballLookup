@@ -2,7 +2,11 @@
 
 Every goal of the 2022 World Cup, rendered as a real 3D ballistic arc flying into
 the exact corner of the net it hit — coloured by how improbable it was (xG). Zoom
-out and 195 trajectories cluster into a glowing constellation.
+out and 169 trajectories cluster into a glowing constellation.
+
+It opens as a guided tour of the tournament's most spectacular goals — each with a
+plain-language card (flag, scorer, opponent, round, "a 25-yard strike into the top
+corner") — or filter to a single nation and watch their whole run.
 
 Built on **[StatsBomb Open Data](https://github.com/statsbomb/open-data)**. No API
 key, no backend, nothing to babysit: the goal data is baked into a static JSON file
@@ -39,6 +43,18 @@ npm run bake 2022 2018 # add more men's World Cup years
 `bake.mjs` reads StatsBomb's `competitions.json`, pulls only the matches it needs,
 extracts every shot whose outcome is a goal, converts the pitch coordinates to metres,
 and writes a compact `goals.json`. It runs at build time only — never in the browser.
+
+### What counts as a goal
+
+The 2022 World Cup's official total is **172**. This renders **169** of them:
+
+- **Penalty shootouts are excluded** (26 kicks). They aren't goals — they don't change
+  the score — and they'd pile identical spot-kick trajectories into the galaxy.
+- **Own goals are excluded** (3: Morocco 39', Germany 69', Argentina 76'). StatsBomb
+  records them as `Own Goal Against` events with no shot geometry, so there's no
+  trajectory to draw.
+
+169 + 3 own goals = the official 172.
 
 ## Deploy
 
