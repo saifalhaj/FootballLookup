@@ -134,6 +134,16 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
 }
 .allbar-n { font-size: 2rem; font-weight: 700; color: var(--ink); }
 .allbar-cap { display: block; font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); margin-top: 4px; }
+.replay-all {
+  pointer-events: auto; cursor: pointer; margin-top: 14px;
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--bg); background: var(--amber); border: 1px solid var(--amber);
+  padding: 10px 18px; border-radius: 100px; font-weight: 600;
+  box-shadow: 0 0 26px rgba(255, 178, 61, .38);
+  transition: transform .15s, box-shadow .15s;
+}
+.replay-all:hover { transform: translateY(-1px); box-shadow: 0 0 34px rgba(255, 178, 61, .55); }
+.replay-all:active { transform: translateY(0); }
 
 @media (max-width: 720px) {
   .sub, .legend { display: none; }

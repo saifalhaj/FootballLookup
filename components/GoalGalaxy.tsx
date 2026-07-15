@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
@@ -48,36 +48,81 @@ function heat(t: number): THREE.Color {
   return new THREE.Color(l[1], l[2], l[3]);
 }
 
-type Arc = { line: THREE.Line; mat: THREE.LineBasicMaterial; count: number; delay: number; dur: number; targetOp: number };
+type Arc = {
+  line: THREE.Line;
+  mat: THREE.LineBasicMaterial;
+  pts: number[]; // flat xyz along the flight
+  count: number;
+  color: THREE.Color;
+  end: THREE.Vector3; // the measured point it crossed the line
+  dur: number; // flight time
+  targetOp: number;
+  replayAt: number | null;
+  flashAt: number | null;
+};
 
 function buildArcs(goals: Goal[]): Arc[] {
   const N = 48;
-  return goals.map((g, idx) => {
+  return goals.map((g) => {
     const imp = g.xg == null ? 0.5 : 1 - Math.max(0, Math.min(1, g.xg));
-    const loft = 0.8 + imp * 2.6 + Math.max(0, g.ty - 1.2) * 0.5;
+    // Only two points of each flight are measured: where it was struck and
+    // where it crossed the line. The curve between is inferred, so keep it
+    // physically motivated rather than decorative — longer shots and higher
+    // finishes arc more. (It used to be driven by xG, which implied ball-flight
+    // data that does not exist.)
+    const dist = Math.hypot(g.ox, g.oz);
+    const loft = 0.25 + dist * 0.055 + g.ty * 0.35;
     const pos: number[] = [];
     for (let i = 0; i <= N; i++) {
       const t = i / N;
       const x = g.ox + (g.tx - g.ox) * t;
       const z = g.oz * (1 - t);
-      const baseY = g.ty * t;
-      const y = baseY + 4 * loft * t * (1 - t);
+      const y = g.ty * t + 4 * loft * t * (1 - t);
       pos.push(x, y, z);
     }
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
     geom.setDrawRange(0, 0);
+    const color = heat(imp);
     const mat = new THREE.LineBasicMaterial({
-      color: heat(imp),
+      color,
       transparent: true,
       opacity: 0.05,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    const line = new THREE.Line(geom, mat);
-    const delay = (idx / goals.length) * 4.2;
-    return { line, mat, count: N + 1, delay, dur: 1.1, targetOp: 0.05 };
+    return {
+      line: new THREE.Line(geom, mat),
+      mat,
+      pts: pos,
+      count: N + 1,
+      color,
+      end: new THREE.Vector3(g.tx, g.ty, 0),
+      // Flight time scales with distance, so a thirty-yard strike hangs in the
+      // air and a tap-in is instant — when they all replay at once, the galaxy
+      // resolves in order of distance.
+      dur: 0.35 + dist * 0.035,
+      targetOp: 0.05,
+      replayAt: null,
+      flashAt: null,
+    };
   });
+}
+
+const _v = new THREE.Vector3();
+const _dummy = new THREE.Object3D();
+
+function sampleArc(a: Arc, p: number, out: THREE.Vector3) {
+  const f = p * (a.count - 1);
+  const i0 = Math.max(0, Math.min(a.count - 1, Math.floor(f)));
+  const i1 = Math.min(a.count - 1, i0 + 1);
+  const t = f - i0;
+  const o0 = i0 * 3, o1 = i1 * 3;
+  out.set(
+    a.pts[o0] + (a.pts[o1] - a.pts[o0]) * t,
+    a.pts[o0 + 1] + (a.pts[o1 + 1] - a.pts[o0 + 1]) * t,
+    a.pts[o0 + 2] + (a.pts[o1 + 2] - a.pts[o0 + 2]) * t,
+  );
 }
 
 function GoalFrame() {
@@ -114,21 +159,63 @@ function Scene({
   goals,
   highlights,
   focusId,
-  reduce,
+  replayAllNonce,
+  focusNonce,
 }: {
   goals: Goal[];
   highlights: Set<number>;
   focusId: number | null;
-  reduce: boolean;
+  replayAllNonce: number;
+  focusNonce: number;
 }) {
   const arcs = useMemo(() => buildArcs(goals), [goals]);
-  const t0 = useRef<number | null>(null);
+  const nowRef = useRef(0);
+  const balls = useRef<THREE.InstancedMesh>(null);
+  const flashes = useRef<THREE.InstancedMesh>(null);
   const marker = useRef<THREE.Mesh>(null);
 
-  // Assign target opacities whenever the focus/selection changes.
-  // Tour mode (a goal is focused): that arc blazes, the other picks are faint
-  // context, the other ~180 goals are barely-there dust — keeps it minimal.
-  // "See all" mode (nothing focused): the whole galaxy glows evenly.
+  const startReplay = useCallback(
+    (idxs: number[], stagger: number) => {
+      const t0 = nowRef.current;
+      idxs.forEach((i, k) => {
+        const a = arcs[i];
+        if (!a) return;
+        a.replayAt = t0 + k * stagger;
+        a.flashAt = null;
+      });
+    },
+    [arcs],
+  );
+
+  // Tint each ball and impact flash to match its arc.
+  useEffect(() => {
+    const b = balls.current, f = flashes.current;
+    if (!b || !f) return;
+    for (let i = 0; i < arcs.length; i++) {
+      b.setColorAt(i, arcs[i].color);
+      f.setColorAt(i, arcs[i].color);
+    }
+    if (b.instanceColor) b.instanceColor.needsUpdate = true;
+    if (f.instanceColor) f.instanceColor.needsUpdate = true;
+  }, [arcs]);
+
+  // Intro: every goal flies in, staggered.
+  useEffect(() => {
+    startReplay(arcs.map((_, i) => i), 0.03);
+  }, [arcs, startReplay]);
+
+  // Focusing a goal (or tapping replay) re-flies that one.
+  useEffect(() => {
+    if (focusId == null) return;
+    startReplay([focusId], 0);
+  }, [focusId, focusNonce, startReplay]);
+
+  // "Replay all" — every ball leaves at the same instant.
+  useEffect(() => {
+    if (!replayAllNonce) return;
+    startReplay(arcs.map((_, i) => i), 0);
+  }, [replayAllNonce, arcs, startReplay]);
+
   useEffect(() => {
     const showAll = focusId == null;
     const contextOp = showAll ? 0.42 : 0.14;
@@ -138,22 +225,55 @@ function Scene({
   }, [arcs, highlights, focusId]);
 
   useFrame(({ clock }) => {
-    if (t0.current === null) t0.current = clock.elapsedTime;
-    const time = clock.elapsedTime - t0.current;
-    for (const a of arcs) {
-      // One-time draw-in; then hold. Reduced motion skips straight to drawn.
-      const p = reduce ? 1 : Math.min(1, Math.max(0, (time - a.delay) / a.dur));
-      a.line.geometry.setDrawRange(0, Math.floor(p * a.count));
-      // Ease opacity toward its target so focus changes glide.
-      a.mat.opacity += (a.targetOp - a.mat.opacity) * (reduce ? 1 : 0.12);
+    const t = clock.elapsedTime;
+    nowRef.current = t;
+    const bm = balls.current, fm = flashes.current;
+
+    for (let i = 0; i < arcs.length; i++) {
+      const a = arcs[i];
+      let p = 1;
+      let flying = false;
+      if (a.replayAt != null) {
+        const dt = t - a.replayAt;
+        if (dt < 0) p = 0;
+        else if (dt >= a.dur) { p = 1; a.replayAt = null; a.flashAt = t; }
+        else { p = dt / a.dur; flying = true; }
+      }
+      // The trail draws itself in behind the ball.
+      a.line.geometry.setDrawRange(0, Math.max(0, Math.round(p * a.count)));
+      a.mat.opacity += (a.targetOp - a.mat.opacity) * 0.12;
+
+      if (bm) {
+        if (flying) {
+          sampleArc(a, p, _v);
+          _dummy.position.copy(_v);
+          _dummy.scale.setScalar(1);
+        } else {
+          _dummy.scale.setScalar(0);
+        }
+        _dummy.updateMatrix();
+        bm.setMatrixAt(i, _dummy.matrix);
+      }
+      if (fm) {
+        let s = 0;
+        if (a.flashAt != null) {
+          const ft = (t - a.flashAt) / 0.4;
+          if (ft >= 1) a.flashAt = null;
+          else s = Math.sin(ft * Math.PI) * 1.7; // pop, then gone
+        }
+        _dummy.position.copy(a.end);
+        _dummy.scale.setScalar(s);
+        _dummy.updateMatrix();
+        fm.setMatrixAt(i, _dummy.matrix);
+      }
     }
-    if (marker.current) {
-      const s = reduce ? 1 : 1 + Math.sin(clock.elapsedTime * 3) * 0.18;
-      marker.current.scale.setScalar(s);
-    }
+    if (bm) bm.instanceMatrix.needsUpdate = true;
+    if (fm) fm.instanceMatrix.needsUpdate = true;
+    if (marker.current) marker.current.scale.setScalar(1 + Math.sin(t * 3) * 0.18);
   });
 
   const focus = focusId != null ? goals[focusId] : null;
+  const n = Math.max(1, arcs.length);
 
   return (
     <group>
@@ -161,6 +281,20 @@ function Scene({
         <primitive key={i} object={a.line} />
       ))}
       <GoalFrame />
+      <instancedMesh key={`b${n}`} ref={balls} args={[undefined, undefined, n]} frustumCulled={false}>
+        <sphereGeometry args={[0.1, 12, 12]} />
+        <meshBasicMaterial toneMapped={false} />
+      </instancedMesh>
+      <instancedMesh key={`f${n}`} ref={flashes} args={[undefined, undefined, n]} frustumCulled={false}>
+        <sphereGeometry args={[0.17, 12, 12]} />
+        <meshBasicMaterial
+          toneMapped={false}
+          transparent
+          opacity={0.45}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </instancedMesh>
       {focus && (
         <mesh ref={marker} position={[focus.tx, focus.ty, 0]}>
           <sphereGeometry args={[0.13, 18, 18]} />
@@ -175,22 +309,16 @@ export default function GoalGalaxy({
   goals,
   highlights,
   focusId,
+  replayAllNonce = 0,
+  focusNonce = 0,
 }: {
   goals: Goal[];
   highlights: Set<number>;
   focusId: number | null;
+  replayAllNonce?: number;
+  focusNonce?: number;
 }) {
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-  const [reduce, setReduce] = useState(false);
-
-  useEffect(() => {
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduce(m.matches);
-    sync();
-    m.addEventListener("change", sync);
-    return () => m.removeEventListener("change", sync);
-  }, []);
-
   useEffect(() => {
     const update = () => {
       const d = document.documentElement;
@@ -200,6 +328,8 @@ export default function GoalGalaxy({
     };
     update();
     window.addEventListener("resize", update);
+    // Some embedded/preview contexts don't fire the initial ResizeObserver that
+    // R3F waits on; nudge it once after mount so the renderer always starts.
     const kick = requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
     return () => {
       window.removeEventListener("resize", update);
@@ -218,11 +348,17 @@ export default function GoalGalaxy({
       >
         <color attach="background" args={[0.024, 0.035, 0.055]} />
         <fog attach="fog" args={[0x060910, 26, 52]} />
-        <Scene goals={goals} highlights={highlights} focusId={focusId} reduce={reduce} />
+        <Scene
+          goals={goals}
+          highlights={highlights}
+          focusId={focusId}
+          replayAllNonce={replayAllNonce}
+          focusNonce={focusNonce}
+        />
         <OrbitControls
           target={[0, 1.2, 0.2]}
           enablePan={false}
-          autoRotate={!reduce}
+          autoRotate
           autoRotateSpeed={0.24}
           minDistance={10}
           maxDistance={34}

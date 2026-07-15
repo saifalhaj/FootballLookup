@@ -23,6 +23,8 @@ export default function Home() {
   const [playing, setPlaying] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [team, setTeam] = useState<string>("");
+  const [replayAllNonce, setReplayAllNonce] = useState(0);
+  const [focusNonce, setFocusNonce] = useState(0);
 
   useEffect(() => {
     fetch("data/goals.json")
@@ -98,7 +100,13 @@ export default function Home() {
   return (
     <main>
       {data && goals.length > 0 && (
-        <GoalGalaxy goals={goals} highlights={showAll ? allSet : tourSet} focusId={focusId} />
+        <GoalGalaxy
+          goals={goals}
+          highlights={showAll ? allSet : tourSet}
+          focusId={focusId}
+          replayAllNonce={replayAllNonce}
+          focusNonce={focusNonce}
+        />
       )}
 
       <div className="overlay">
@@ -171,6 +179,14 @@ export default function Home() {
               <div className="card-desc">{describe(focus)}</div>
             </div>
             <div className="card-nav">
+              <button
+                type="button"
+                onClick={() => setFocusNonce((n) => n + 1)}
+                aria-label="Watch this goal again"
+                title="Watch it again"
+              >
+                ↻
+              </button>
               <button type="button" onClick={() => step(-1)} aria-label="Previous goal">‹</button>
               <span className="card-count">{(pos % tour.length) + 1} / {tour.length}</span>
               <button type="button" onClick={() => step(1)} aria-label="Next goal">›</button>
@@ -192,6 +208,13 @@ export default function Home() {
             <span className="allbar-cap">
               goals · {isArchive ? "the archived classics" : `every shot that found the net · ${current?.short}`}
             </span>
+            <button
+              type="button"
+              className="replay-all"
+              onClick={() => setReplayAllNonce((n) => n + 1)}
+            >
+              ▶ Replay all {goals.length} at once
+            </button>
           </div>
         )}
 
@@ -200,6 +223,8 @@ export default function Home() {
           <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">
             StatsBomb Open Data
           </a>
+          <br />
+          Where it was struck and where it crossed the line are measured; the curve between is inferred
           <br />
           Shootout penalties and own goals aren&rsquo;t shown — no shot to draw
         </div>
