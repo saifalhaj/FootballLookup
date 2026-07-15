@@ -1,129 +1,57 @@
-# Nightmatch — Football Player Lookup
+# Goal Galaxy
 
-Type a footballer's name, get a floodlit profile card: bio, club, position-aware
-season stats, and transfer history. Next.js App Router, deployable to Vercel with
-zero extra config. The football API key is read only on the server — it never
-reaches the browser.
+Every goal of the 2022 World Cup, rendered as a real 3D ballistic arc flying into
+the exact corner of the net it hit — coloured by how improbable it was (xG). Zoom
+out and 195 trajectories cluster into a glowing constellation.
 
-## Setup
-
-1. Get a free **API-Football** key at <https://dashboard.api-football.com>.
-2. Copy the example env file and paste your key:
-
-   ```bash
-   cp .env.example .env.local
-   # then edit .env.local: API_FOOTBALL_KEY=xxxxxxxx
-   ```
-
-3. Install and run:
-
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-   Open <http://localhost:3000>.
-
-## Deploy (Vercel)
-
-Push the repo and import it on Vercel. Add one Environment Variable:
-
-- `API_FOOTBALL_KEY` — your key (required)
-
-Optional overrides:
-
-- `API_FOOTBALL_HOST` — set to `api-football-v1.p.rapidapi.com` if you access
-  API-Football through the RapidAPI gateway instead of direct api-sports.io.
-  The app switches to RapidAPI auth headers automatically.
-- `API_FOOTBALL_SEASON` — season year for stats (defaults to `2023`, which has
-  broad free-tier coverage; the app falls back to the previous season if empty).
-
-No database is needed to run.
+Built on **[StatsBomb Open Data](https://github.com/statsbomb/open-data)**. No API
+key, no backend, nothing to babysit: the goal data is baked into a static JSON file
+committed to the repo, and the whole thing exports to flat files.
 
 ## How it works
 
 ```
-Browser ──▶ /api/players/search?q=   ──▶ provider.search()   ──▶ API-Football
-Browser ──▶ /api/players/[id]        ──▶ provider.getProfile ──▶ API-Football
+scripts/bake.mjs  ──(one-time, over the network)──▶  public/data/goals.json
+public/data/goals.json  ──(shipped as a static asset)──▶  the browser
+components/GoalGalaxy.tsx  ──▶  Three.js scene (React Three Fiber + bloom)
 ```
 
-- **Search** hits `players/profiles` (name search, no season needed) and returns
-  a short pick-list so you choose the right player.
-- **Profile** merges the bio with one season of statistics and the transfer
-  history, normalized into provider-agnostic types.
+Each goal's `end_location [x, y, z]` gives the true point the ball crossed the line
+(top-corner screamers arc high; tap-ins skim the post), and `statsbomb_xg` drives the
+colour — low-xG goals burn hot, tap-ins stay cool.
 
-### Broadcast graphics
-
-All charts are hand-rolled SVG/canvas — no chart libraries:
-
-- **Scoreboard** — split-flap cell entrance, count-up figures, LED dot-matrix
-  texture, scanline sweep ([PlayerCard](components/PlayerCard.tsx))
-- **Role radar** — per-90 profile on position-aware axes, scaled against elite
-  benchmarks (labeled as such; needs 270+ minutes) ([Radar](components/viz/Radar.tsx))
-- **Pitch map** — chalk-line pitch with the player's zone lit ([PitchMap](components/viz/PitchMap.tsx))
-- **Efficiency gauges** — donut rings for duel/dribble/shot success and
-  conversion ([Gauge](components/viz/Gauge.tsx))
-- **Transfer flow** — timeline with fee bars scaled to the biggest move; loans
-  and frees shown as chips ([TransferFlow](components/viz/TransferFlow.tsx))
-- **Hero** — floodlight power-on sequence with canvas dust particles ([Dust](components/viz/Dust.tsx))
-
-Sections reveal on scroll (IntersectionObserver); every animation — CSS and
-JS-driven — respects `prefers-reduced-motion`. The viz math lives in
-[`lib/viz.ts`](lib/viz.ts) with its own self-check (`npx tsx lib/viz.test.ts`).
-
-### Position-aware stats
-
-The card detects the player's role and headlines the stats that matter, on a
-scoreboard strip; everything else drops to a de-emphasized "full numbers" grid.
-
-| Role | Headline stats |
-| --- | --- |
-| Goalkeeper | Saves · Goals conceded · Penalties saved · Appearances |
-| Defender | Tackles · Interceptions · Blocks · Duels won |
-| Midfielder | Key passes · Assists · Pass accuracy · Dribbles |
-| Forward | Goals · Assists · Shots on target · Dribbles |
-
-Season counting stats are summed across all competitions (league + cups); rates
-like rating and pass accuracy come from the player's main competition.
-
-### Swapping / adding a data provider
-
-Everything the UI sees is defined in [`lib/providers/types.ts`](lib/providers/types.ts).
-A second source (e.g. **SportMonks** for market value + advanced ratings, or
-**FBref**) implements the `Provider` interface and is selected in
-[`lib/providers/index.ts`](lib/providers/index.ts) — no component changes.
-
-Market value is **not** exposed by API-Football, so it's shown as a clearly
-labeled placeholder rather than faked. Do not scrape Transfermarkt; add a paid
-provider instead.
-
-## Guardrails
-
-- **Rate limiting:** a simple per-IP fixed-window cap on the API routes
-  ([`lib/ratelimit.ts`](lib/ratelimit.ts)) so a demo can't burn the quota. It's
-  in-memory per instance — swap for Upstash/Vercel KV for a global cap.
-- **Caching:** upstream calls are cached 30 min via Next's data cache to protect
-  the quota. Identical lookups don't re-hit the API.
-- **Errors & empties:** no-results and API errors surface as in-UI messages, not
-  blank screens. Missing keys tell you exactly what to configure.
-- **Never commit keys:** `.env*.local` is gitignored.
-
-## Optional: Supabase caching
-
-Not built (kept out of v1). To add: cache each fetched profile in a Supabase
-table keyed by player id + timestamp, serve from cache when fresh (< 24h), and
-put it behind an env flag so the app still runs fully without Supabase.
-
-## Tests
-
-The one piece of real logic — collapsing multi-competition stats into a season
-line — has a self-check:
+## Develop
 
 ```bash
-npx --yes tsx lib/providers/aggregate.test.ts
+npm install
+npm run dev            # http://localhost:3000
 ```
 
-## Out of scope (v1)
+## Refresh / extend the data
 
-Live match tracking, multi-season comparison, head-to-head. The provider layer
-and types leave room to add them later.
+The goals file is already committed, so you only need this to change what's shown:
+
+```bash
+npm run bake           # men's World Cup 2022 (default)
+npm run bake 2022 2018 # add more men's World Cup years
+```
+
+`bake.mjs` reads StatsBomb's `competitions.json`, pulls only the matches it needs,
+extracts every shot whose outcome is a goal, converts the pitch coordinates to metres,
+and writes a compact `goals.json`. It runs at build time only — never in the browser.
+
+## Deploy
+
+```bash
+npm run build          # produces static ./out
+```
+
+Drop `out/` on Vercel, GitHub Pages, or Cloudflare Pages. Static output means atomic,
+free deploys that can sit untouched for years.
+
+## Attribution
+
+Data © StatsBomb — the [Public Data User Agreement](https://github.com/statsbomb/open-data)
+requires crediting StatsBomb (and, for published work, displaying their logo) and limits
+use to non-commercial research/interest. The credit is shown in the app footer; add the
+StatsBomb logo from their media pack before publishing anywhere public.

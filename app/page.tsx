@@ -1,189 +1,138 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { PlayerSummary, PlayerProfile } from "@/lib/providers/types";
-import SearchBox from "@/components/SearchBox";
-import ResultsList from "@/components/ResultsList";
-import PlayerCard from "@/components/PlayerCard";
-import Dust from "@/components/viz/Dust";
-import styles from "./page.module.css";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import GoalGalaxy, { type Goal } from "@/components/GoalGalaxy";
+import { computeHighlights, describe, flagOf, nameOf, rarityTag } from "@/lib/fans";
 
-const EXAMPLES = ["Haaland", "Bellingham", "Rodri", "Vinicius"];
+type Payload = { source: string; tournaments: string[]; count: number; goals: Goal[] };
 
 export default function Home() {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PlayerSummary[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [data, setData] = useState<Payload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pos, setPos] = useState(0); // index into the highlights list
+  const [playing, setPlaying] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [profile, setProfile] = useState<PlayerProfile | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
-
-  const cardRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-
-  // Debounced live search.
   useEffect(() => {
-    const q = query.trim();
-    if (q.length < 3) {
-      setResults([]);
-      setSearchError(null);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const ctrl = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/players/search?q=${encodeURIComponent(q)}`, {
-          signal: ctrl.signal,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Search failed. Try again.");
-        setResults(data.results ?? []);
-        setSearchError(null);
-        setSearching(false);
-      } catch (e) {
-        // A superseding effect run owns `searching`; don't touch it on abort.
-        if ((e as Error).name === "AbortError") return;
-        setResults([]);
-        setSearchError((e as Error).message);
-        setSearching(false);
-      }
-    }, 300);
-    return () => {
-      ctrl.abort();
-      clearTimeout(timer);
-    };
-  }, [query]);
-
-  const selectPlayer = useCallback((id: number) => {
-    setSelectedId(id);
-    setProfile(null);
-    setProfileError(null);
-    setLoadingProfile(true);
-    // Move focus into the card slot (the results list is about to unmount
-    // under the focused row, which would drop focus to <body>).
-    cardRef.current?.focus({ preventScroll: true });
-    requestAnimationFrame(() => {
-      // An explicit "smooth" ignores the CSS reduced-motion kill rule — pick at call time.
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      cardRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-    });
-    (async () => {
-      try {
-        const res = await fetch(`/api/players/${id}`);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Couldn't load that player.");
-        setProfile(data.profile);
-      } catch (e) {
-        setProfileError((e as Error).message);
-      } finally {
-        setLoadingProfile(false);
-      }
-    })();
+    fetch("data/goals.json")
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      })
+      .then(setData)
+      .catch(() => setError("Couldn't load the goals data."));
   }, []);
 
-  const clearSelection = () => {
-    setSelectedId(null);
-    setProfile(null);
-    setProfileError(null);
-    // The card (with its "New search" button) unmounts — hand focus to search.
-    searchRef.current?.focus();
-  };
+  const goals = data?.goals ?? [];
+  const highlights = useMemo(() => (goals.length ? computeHighlights(goals) : []), [goals]);
+  const allSet = useMemo(() => new Set(goals.map((_, i) => i)), [goals]);
+  const tourSet = useMemo(() => new Set(highlights), [highlights]);
 
-  const showResults = query.trim().length >= 3 && !selectedId;
+  const focusId = showAll || !highlights.length ? null : highlights[pos % highlights.length];
+
+  // Auto-advance the tour.
+  useEffect(() => {
+    if (showAll || !playing || highlights.length === 0) return;
+    const id = setInterval(() => setPos((p) => (p + 1) % highlights.length), 4600);
+    return () => clearInterval(id);
+  }, [showAll, playing, highlights.length]);
+
+  const step = useCallback(
+    (delta: number) => {
+      if (!highlights.length) return;
+      setPlaying(false);
+      setPos((p) => (p + delta + highlights.length) % highlights.length);
+    },
+    [highlights.length],
+  );
+
+  const focus = focusId != null ? goals[focusId] : null;
+  const tag = focus ? rarityTag(focus) : null;
 
   return (
-    <main className={styles.main}>
-      <header className={`${styles.hero} ${selectedId ? styles.heroCompact : ""}`}>
-        <div className={styles.beams} aria-hidden />
-        <Dust />
-        <p className={styles.eyebrow}>Football player lookup</p>
-        <h1 className={styles.title}>
-          <span className={styles.w}>Under</span>{" "}
-          <span className={styles.w} style={{ animationDelay: "0.12s" }}>
-            the
-          </span>{" "}
-          <span className={`${styles.w} ${styles.amber}`} style={{ animationDelay: "0.24s" }}>
-            floodlights
-          </span>
-        </h1>
-        <p className={styles.lede}>
-          Search any footballer for a matchday profile — bio, club, position-aware
-          season stats, and transfer history.
-        </p>
-
-        <div className={styles.searchIn}>
-          <SearchBox
-            value={query}
-            onChange={(v) => {
-              setQuery(v);
-              if (selectedId) clearSelection();
-            }}
-            busy={searching}
-            inputRef={searchRef}
-          />
-        </div>
-
-        {!query && (
-          <div className={styles.examples}>
-            <span className={styles.examplesLabel}>Try</span>
-            {EXAMPLES.map((ex) => (
-              <button
-                key={ex}
-                type="button"
-                className={styles.chip}
-                onClick={() => setQuery(ex)}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
-        )}
-      </header>
-
-      {showResults && (
-        <section className={styles.resultsWrap} aria-live="polite">
-          {searchError ? (
-            <p className={styles.notice} role="alert">
-              {searchError}
-            </p>
-          ) : (
-            <ResultsList
-              results={results}
-              busy={searching}
-              query={query.trim()}
-              onSelect={selectPlayer}
-            />
-          )}
-        </section>
+    <main>
+      {data && (
+        <GoalGalaxy
+          goals={goals}
+          highlights={showAll ? allSet : tourSet}
+          focusId={focusId}
+        />
       )}
 
-      <div ref={cardRef} className={styles.cardSlot} tabIndex={-1}>
-        {selectedId &&
-          (loadingProfile ? (
-            <div className={styles.loading} role="status">
-              <span className={styles.loadingBar} aria-hidden />
-              <p>Warming up the floodlights…</p>
+      <div className="overlay">
+        <header className="masthead">
+          <p className="eyebrow">FIFA World Cup 2022 · Greatest goals</p>
+          <h1 className="title">
+            Goal<br />
+            <span className="lit">Galaxy</span>
+          </h1>
+          <p className="sub">
+            Every goal of the tournament, flying into the exact corner it hit.
+            A tour of the <b>most spectacular</b> ones.
+          </p>
+        </header>
+
+        <button
+          className="toggle"
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+        >
+          {showAll ? "‹ Back to the tour" : "See all 195 goals →"}
+        </button>
+
+        <div className="legend">
+          <span>tap-in</span>
+          <span className="ramp" aria-hidden="true" />
+          <span>wonder&nbsp;goal</span>
+        </div>
+
+        {/* Fan-facing card for the focused goal */}
+        {focus && !showAll && (
+          <div className="card" aria-live="polite">
+            <span className="card-flag" aria-hidden="true">{flagOf(focus.team)}</span>
+            <div className="card-body">
+              <div className="card-row">
+                <span className="card-scorer">{nameOf(focus.player)}</span>
+                {tag && <span className="card-tag">{tag}</span>}
+              </div>
+              <div className="card-match">
+                {focus.team} v {focus.opponent} · {focus.stage} · {focus.minute}&prime;
+              </div>
+              <div className="card-desc">{describe(focus)}</div>
             </div>
-          ) : profileError ? (
-            <div className={styles.notice} role="alert">
-              <p>{profileError}</p>
+            <div className="card-nav">
+              <button type="button" onClick={() => step(-1)} aria-label="Previous goal">‹</button>
+              <span className="card-count">{(pos % highlights.length) + 1} / {highlights.length}</span>
+              <button type="button" onClick={() => step(1)} aria-label="Next goal">›</button>
               <button
                 type="button"
-                className={styles.retry}
-                onClick={() => selectPlayer(selectedId)}
+                className="card-play"
+                onClick={() => setPlaying((p) => !p)}
+                aria-label={playing ? "Pause" : "Play"}
               >
-                Try again
+                {playing ? "❚❚" : "▶"}
               </button>
             </div>
-          ) : profile ? (
-            <PlayerCard profile={profile} onBack={clearSelection} />
-          ) : null)}
+          </div>
+        )}
+
+        {showAll && (
+          <div className="allbar">
+            <span className="allbar-n">195</span>
+            <span className="allbar-cap">goals · every one of the 2022 World Cup</span>
+          </div>
+        )}
+
+        <div className="credit">
+          Data —{" "}
+          <a href="https://github.com/statsbomb/open-data" target="_blank" rel="noopener noreferrer">
+            StatsBomb Open Data
+          </a>
+        </div>
       </div>
+
+      {!data && !error && <div className="loading">Assembling the galaxy…</div>}
+      {error && <div className="loading">{error}</div>}
     </main>
   );
 }

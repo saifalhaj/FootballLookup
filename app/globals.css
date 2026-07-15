@@ -1,110 +1,124 @@
-/* ============================================================
-   Nightmatch — floodlit-pitch design tokens
-   ============================================================ */
 :root {
-  /* Field (quiet, dark) */
-  --pitch: #08211c;
-  --pitch-2: #0b2a22;
-  --turf: #103428;
-  --turf-line: #1c5b44;
-  --scoreboard: #05130e;
-  --panel-line: #0d2a20;
-
-  /* Card (the hero surface: pitch chalk / paper) */
-  --chalk: #edf3ec;
-  --chalk-2: #e2ebe0;
-  --line-on-chalk: #d2ded0;
-  --ink: #0b1512;
-  --ink-2: #3a4c44;
-  --chalk-muted: #586a60;
-
-  /* Accents */
-  --floodlight: #ffb000;
-  --floodlight-soft: #ffca4d;
-  --sage: #86a596;
-  --card-red: #e4572e;
-
-  --radius: 4px;
-  --radius-lg: 10px;
-  --maxw: 940px;
-
-  --font-display: "Anton", sans-serif;
-  --font-body: "Archivo", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --bg: #060910;
+  --ink: #eef3fb;
+  --ink-dim: #93a3ba;
+  --amber: #ffb23d;
+  --line: #1a2535;
+  --line-2: #283a52;
+  --display: -apple-system, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--ink); }
+body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflow: hidden; }
+
+.scene { position: fixed; inset: 0; }
+
+/* ---- overlay chrome, drawn above the canvas ---- */
+.overlay { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
+.overlay a { pointer-events: auto; }
+
+.masthead { position: absolute; top: clamp(20px, 4vw, 46px); left: clamp(20px, 4vw, 46px); max-width: 30ch; text-shadow: 0 2px 22px rgba(6, 9, 16, 0.85), 0 0 6px rgba(6, 9, 16, 0.7); }
+.eyebrow {
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--amber); margin: 0 0 10px;
+}
+.title {
+  font-size: clamp(2.4rem, 6vw, 4.4rem); font-weight: 800; line-height: .9;
+  letter-spacing: -.02em; text-transform: uppercase; margin: 0;
+}
+.title .lit { color: var(--amber); text-shadow: 0 0 34px rgba(255,178,61,.4); }
+.sub { margin: 16px 0 0; color: var(--ink-dim); font-size: 1rem; line-height: 1.5; max-width: 34ch; }
+.sub b { color: var(--ink); font-weight: 600; }
+
+.legend {
+  position: absolute; left: clamp(20px, 4vw, 46px); bottom: clamp(20px, 4vw, 40px);
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+.legend .ramp {
+  width: 150px; height: 7px; border-radius: 4px;
+  background: linear-gradient(90deg, #3aa6ff, #7cf0ff, #ffe08a, #ff7a45, #ff4d6d);
+  box-shadow: 0 0 14px rgba(255,120,80,.35);
 }
 
-* {
-  margin: 0;
+.credit {
+  position: absolute; right: clamp(20px, 4vw, 46px); bottom: clamp(20px, 4vw, 40px);
+  text-align: right; font-family: var(--mono); font-size: .66rem; letter-spacing: .06em;
+  color: #5c6b81; line-height: 1.7;
+}
+.credit a { color: #8090a6; text-decoration: none; border-bottom: 1px solid #26313f; }
+.credit a:hover { color: var(--amber); border-color: var(--amber); }
+
+.hud {
+  position: absolute; top: clamp(20px, 4vw, 46px); right: clamp(20px, 4vw, 46px);
+  text-align: right; font-family: var(--mono);
+}
+.hud .big { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 700; color: var(--ink); line-height: 1; font-variant-numeric: tabular-nums; }
+.hud .cap { font-size: .66rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-dim); margin-top: 6px; }
+
+.loading {
+  position: fixed; inset: 0; display: grid; place-items: center; z-index: 3;
+  font-family: var(--mono); font-size: .8rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-dim);
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
+/* ---- top-right toggle: tour <-> all 195 ---- */
+.toggle {
+  position: absolute; top: clamp(20px, 4vw, 46px); right: clamp(20px, 4vw, 46px);
+  pointer-events: auto; cursor: pointer;
+  font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-dim); background: rgba(15, 24, 38, 0.55); border: 1px solid var(--line-2);
+  padding: 9px 14px; border-radius: 100px; backdrop-filter: blur(6px);
+  transition: color .2s, border-color .2s;
 }
+.toggle:hover { color: var(--amber); border-color: var(--amber); }
 
-body {
-  min-height: 100dvh;
-  font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.5;
-  color: var(--chalk);
-  background-color: var(--pitch);
-  /* Floodlight glow from the top, deep-turf pooling at the base, and the
-     faintest mowing stripes so the field reads as a pitch, not a void. */
-  background-image: radial-gradient(
-      120% 75% at 50% -12%,
-      rgba(255, 176, 0, 0.12),
-      transparent 58%
-    ),
-    radial-gradient(100% 55% at 50% 118%, rgba(28, 91, 68, 0.28), transparent 72%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.014) 0 64px,
-      transparent 64px 128px
-    );
-  background-attachment: fixed;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+/* ---- fan-facing goal card ---- */
+.card {
+  position: absolute; left: 50%; bottom: clamp(18px, 4vw, 40px); transform: translateX(-50%);
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 18px;
+  width: min(680px, calc(100vw - 36px));
+  padding: 15px 18px;
+  background: rgba(10, 16, 25, 0.72); border: 1px solid var(--line-2);
+  border-radius: 16px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45);
 }
-
-img {
-  display: block;
-  max-width: 100%;
+.card-flag { font-size: 2.4rem; line-height: 1; flex-shrink: 0; }
+.card-body { flex: 1; min-width: 0; }
+.card-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card-scorer { font-family: var(--display); font-weight: 700; font-size: 1.16rem; letter-spacing: -.01em; }
+.card-tag {
+  font-family: var(--mono); font-size: .58rem; letter-spacing: .12em;
+  padding: 3px 7px; border-radius: 5px; white-space: nowrap;
+  background: rgba(255, 178, 61, 0.16); color: var(--amber); border: 1px solid rgba(255, 178, 61, 0.32);
 }
-
-button {
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
+.card-match { font-family: var(--mono); font-size: .73rem; color: var(--ink-dim); margin-top: 3px; letter-spacing: .01em; }
+.card-desc { font-size: .95rem; color: var(--ink); margin-top: 6px; }
+.card-nav { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.card-nav button {
+  font-family: var(--mono); cursor: pointer; color: var(--ink);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line-2);
+  width: 34px; height: 34px; border-radius: 9px; font-size: 1rem;
+  display: grid; place-items: center; transition: background .15s, border-color .15s;
 }
+.card-nav button:hover { background: rgba(255, 178, 61, 0.14); border-color: var(--amber); }
+.card-count { font-family: var(--mono); font-size: .72rem; color: var(--ink-dim); min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+.card-play { font-size: .72rem !important; }
 
-:focus-visible {
-  outline: 2px solid var(--floodlight);
-  outline-offset: 3px;
-  border-radius: 3px;
+/* ---- all-goals bar ---- */
+.allbar {
+  position: absolute; left: 50%; bottom: clamp(18px, 4vw, 40px); transform: translateX(-50%);
+  text-align: center; font-family: var(--mono);
 }
+.allbar-n { font-size: 2rem; font-weight: 700; color: var(--ink); }
+.allbar-cap { display: block; font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-dim); margin-top: 4px; }
 
-::selection {
-  background: var(--floodlight);
-  color: var(--ink);
-}
-
-/* Respect reduced motion everywhere (durations AND delays, so staggered
-   entrances resolve instantly instead of trickling in). */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-delay: 0ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    transition-delay: 0ms !important;
-    scroll-behavior: auto !important;
-  }
+@media (max-width: 720px) {
+  .sub, .legend { display: none; }
+  .card { flex-wrap: wrap; gap: 12px; }
+  .card-flag { font-size: 2rem; }
 }
