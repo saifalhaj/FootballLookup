@@ -7,6 +7,7 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 
 export type Goal = {
+  t: string; // tournament id — see scripts/bake.mjs
   tx: number; ty: number; // where the ball crossed the goal line (m): lateral, height
   ox: number; oz: number; // where it was struck (m): lateral, depth into pitch
   xg: number | null;
@@ -15,6 +16,7 @@ export type Goal = {
   opponent: string | null;
   stage: string | null;
   minute: number | null;
+  season: string | null;
   pen: boolean;
 };
 

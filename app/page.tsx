@@ -12,11 +12,13 @@ import {
   teamsWithGoals,
 } from "@/lib/fans";
 
-type Payload = { source: string; tournaments: string[]; count: number; goals: Goal[] };
+type Tournament = { id: string; label: string; short: string; full: boolean; count: number };
+type Payload = { source: string; tournaments: Tournament[]; count: number; goals: Goal[] };
 
 export default function Home() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tid, setTid] = useState("2022");
   const [pos, setPos] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -32,10 +34,13 @@ export default function Home() {
       .catch(() => setError("Couldn't load the goals data."));
   }, []);
 
-  const goals = data?.goals ?? [];
+  const tournaments = useMemo(() => data?.tournaments ?? [], [data]);
+  const current = tournaments.find((t) => t.id === tid) ?? tournaments[0];
+
+  // Everything below works on one tournament at a time.
+  const goals = useMemo(() => (data?.goals ?? []).filter((g) => g.t === tid), [data, tid]);
   const teams = useMemo(() => (goals.length ? teamsWithGoals(goals) : []), [goals]);
 
-  // The tour is either the curated greatest goals, or one nation's whole run.
   const tour = useMemo(() => {
     if (!goals.length) return [];
     return team ? goalsForTeam(goals, team) : computeHighlights(goals);
@@ -44,7 +49,13 @@ export default function Home() {
   const allSet = useMemo(() => new Set(goals.map((_, i) => i)), [goals]);
   const tourSet = useMemo(() => new Set(tour), [tour]);
 
-  // Picking a team restarts its story and leaves the all-goals view.
+  // Switching tournament starts over.
+  useEffect(() => {
+    setTeam("");
+    setPos(0);
+    setShowAll(false);
+  }, [tid]);
+
   useEffect(() => {
     setPos(0);
     setShowAll(false);
@@ -82,16 +93,19 @@ export default function Home() {
 
   const focus = focusId != null ? goals[focusId] : null;
   const tag = focus ? rarityTag(focus) : null;
+  const isArchive = current ? !current.full : false;
 
   return (
     <main>
-      {data && (
+      {data && goals.length > 0 && (
         <GoalGalaxy goals={goals} highlights={showAll ? allSet : tourSet} focusId={focusId} />
       )}
 
       <div className="overlay">
         <header className="masthead">
-          <p className="eyebrow">FIFA World Cup 2022 · {team ? team : "Greatest goals"}</p>
+          <p className="eyebrow">
+            {current?.short ?? "World Cup"} · {team ? team : "Greatest goals"}
+          </p>
           <h1 className="title">
             Goal<br />
             <span className="lit">Galaxy</span>
@@ -99,11 +113,25 @@ export default function Home() {
           <p className="sub">
             {team
               ? `Every goal ${team} scored, in the order they scored them.`
-              : "Every strike that found the net, flying into the exact corner it hit. A tour of the most spectacular ones."}
+              : isArchive
+                ? "The only matches StatsBomb keeps from before 2018 — Maradona's Argentina, Pelé's Brazil, Cruyff's Netherlands. An archive, not a full tournament."
+                : "Every strike that found the net, flying into the exact corner it hit. A tour of the most spectacular ones."}
           </p>
         </header>
 
         <div className="controls">
+          <select
+            className="picker"
+            value={tid}
+            onChange={(e) => setTid(e.target.value)}
+            aria-label="Choose a tournament"
+          >
+            {tournaments.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.short}
+              </option>
+            ))}
+          </select>
           <select
             className="picker"
             value={team}
@@ -138,6 +166,7 @@ export default function Home() {
               </div>
               <div className="card-match">
                 {focus.team} v {focus.opponent} · {focus.stage} · {focus.minute}&prime;
+                {isArchive && focus.season ? ` · ${focus.season}` : ""}
               </div>
               <div className="card-desc">{describe(focus)}</div>
             </div>
@@ -160,7 +189,9 @@ export default function Home() {
         {showAll && (
           <div className="allbar">
             <span className="allbar-n">{goals.length}</span>
-            <span className="allbar-cap">goals · every shot that found the net in 2022</span>
+            <span className="allbar-cap">
+              goals · {isArchive ? "the archived classics" : `every shot that found the net · ${current?.short}`}
+            </span>
           </div>
         )}
 
@@ -170,7 +201,7 @@ export default function Home() {
             StatsBomb Open Data
           </a>
           <br />
-          Shootout penalties and the 3 own goals aren&rsquo;t shown — no shot to draw
+          Shootout penalties and own goals aren&rsquo;t shown — no shot to draw
         </div>
       </div>
 

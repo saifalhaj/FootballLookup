@@ -69,6 +69,7 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
 .controls {
   position: absolute; top: clamp(20px, 4vw, 46px); right: clamp(20px, 4vw, 46px);
   display: flex; align-items: center; gap: 10px; pointer-events: auto;
+  flex-wrap: wrap; justify-content: flex-end; max-width: min(560px, 60vw);
 }
 .toggle, .picker {
   cursor: pointer;

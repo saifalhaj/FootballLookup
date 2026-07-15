@@ -35,8 +35,50 @@ export function distanceYards(g: Goal): number {
   return Math.round(Math.hypot(g.ox, g.oz) * M_TO_YD);
 }
 
+/**
+ * Some goals are legendary for reasons the shot data cannot see. Maradona's Goal
+ * of the Century is an 11-metre shot with 0.608 xG — the sixty-metre dribble
+ * before it doesn't exist in a shot record, so the maths would call it an
+ * ordinary finish. These few pins carry the knowledge the data can't.
+ * Matched against what the baked data actually says (StatsBomb's clock can run a
+ * minute behind the popular record).
+ */
+type Legend = { season: string; player: RegExp; minute: number; tag: string; note: string };
+const LEGENDS: Legend[] = [
+  {
+    season: "1986", player: /Maradona/, minute: 50, tag: "HAND OF GOD",
+    note: "Punched in with his left hand. The referee never saw it.",
+  },
+  {
+    season: "1986", player: /Maradona/, minute: 54, tag: "GOAL OF THE CENTURY",
+    note: "Sixty metres, eleven touches, half of England beaten — the greatest goal ever scored.",
+  },
+  {
+    season: "1970", player: /Pelé/, minute: 17, tag: "THE 1970 FINAL",
+    note: "A header to open the final, for the greatest team ever assembled.",
+  },
+  {
+    season: "1958", player: /Pelé/, minute: 54, tag: "AGED SEVENTEEN",
+    note: "Flicked it over the defender and volleyed in — seventeen years old, in a World Cup final.",
+  },
+  {
+    season: "1958", player: /Pelé/, minute: 90, tag: "AGED SEVENTEEN",
+    note: "A looping header to finish the final. He wept on the pitch afterwards.",
+  },
+];
+
+export function legendOf(g: Goal): Legend | null {
+  return (
+    LEGENDS.find(
+      (l) => l.season === g.season && l.minute === g.minute && l.player.test(g.player ?? ""),
+    ) ?? null
+  );
+}
+
 /** A short, punchy tag — or null when the goal is unremarkable. */
 export function rarityTag(g: Goal): string | null {
+  const legend = legendOf(g);
+  if (legend) return legend.tag;
   if (g.pen) return "PENALTY";
   if (g.xg == null) return null;
   if (g.xg < 0.04) return "WONDER GOAL";
@@ -48,6 +90,8 @@ export function rarityTag(g: Goal): string | null {
 
 /** One human sentence describing how the goal was scored. */
 export function describe(g: Goal): string {
+  const legend = legendOf(g);
+  if (legend) return legend.note;
   const yd = distanceYards(g);
   const topCorner = g.ty > 1.65 && Math.abs(g.tx) > 1.7;
   const roof = g.ty > 1.9;
@@ -96,29 +140,32 @@ function spectacleOf(g: Goal): number {
 }
 
 /**
- * Curate the guided tour. Two rules:
- *  1. Every goal of the Final earns a place — it's the game everyone remembers,
- *     and the raw "spectacle" maths would drop Messi's and Mbappé's penalties.
- *  2. The rest are the most spectacular strikes: long range + improbable (low
+ * Curate the guided tour. Three rules:
+ *  1. Legendary goals always make it — the maths can't see why they matter.
+ *  2. Every goal of the Final earns a place: it's the game everyone remembers,
+ *     and the spectacle maths would drop Messi's and Mbappé's penalties.
+ *  3. The rest are the most spectacular strikes — long range + improbable (low
  *     xG) + knockout drama, capped at 2 per scorer so it stays varied.
- * Ordered as a crescendo — the screamers first, the Final last, in order.
+ * Ordered as a crescendo: the screamers first, then the guaranteed goals in
+ * chronological order (which for the Classics archive walks 1958 → 1986).
  */
 export function computeHighlights(goals: Goal[], n = 14): number[] {
-  const finalIds = goals
+  const keyOf = (g: Goal) => Number(g.season ?? 0) * 1000 + (g.minute ?? 0);
+  const guaranteed = goals
     .map((g, i) => ({ g, i }))
-    .filter((x) => x.g.stage === "Final")
-    .sort((a, b) => (a.g.minute ?? 0) - (b.g.minute ?? 0))
+    .filter((x) => x.g.stage === "Final" || legendOf(x.g))
+    .sort((a, b) => keyOf(a.g) - keyOf(b.g))
     .map((x) => x.i);
-  const isFinal = new Set(finalIds);
+  const isGuaranteed = new Set(guaranteed);
 
   const rest = goals
     .map((g, i) => ({ i, score: spectacleOf(g) }))
-    .filter((x) => !isFinal.has(x.i))
+    .filter((x) => !isGuaranteed.has(x.i))
     .sort((a, b) => b.score - a.score);
 
   const perPlayer = new Map<string, number>();
   const picked: number[] = [];
-  const room = Math.max(0, n - finalIds.length);
+  const room = Math.max(0, n - guaranteed.length);
   for (const s of rest) {
     const p = goals[s.i].player ?? "?";
     const c = perPlayer.get(p) ?? 0;
@@ -127,7 +174,7 @@ export function computeHighlights(goals: Goal[], n = 14): number[] {
     picked.push(s.i);
     if (picked.length >= room) break;
   }
-  return [...picked, ...finalIds];
+  return [...picked, ...guaranteed];
 }
 
 /** Every nation that scored, for the team picker. */

@@ -1,12 +1,29 @@
 # Goal Galaxy
 
-Every goal of the 2022 World Cup, rendered as a real 3D ballistic arc flying into
-the exact corner of the net it hit — coloured by how improbable it was (xG). Zoom
-out and 169 trajectories cluster into a glowing constellation.
+Every goal of a World Cup, rendered as a real 3D ballistic arc flying into the exact
+corner of the net it hit — coloured by how improbable it was (xG). Zoom out and the
+trajectories cluster into a glowing constellation.
 
 It opens as a guided tour of the tournament's most spectacular goals — each with a
 plain-language card (flag, scorer, opponent, round, "a 25-yard strike into the top
 corner") — or filter to a single nation and watch their whole run.
+
+## Tournaments
+
+Everything StatsBomb publishes for the World Cup:
+
+| | |
+| --- | --- |
+| **Men's 2022** | complete tournament |
+| **Men's 2018** | complete tournament |
+| **Women's 2023** | complete tournament |
+| **Women's 2019** | complete tournament |
+| **Classics 1958–1990** | an *archive*, not a tournament — see below |
+
+The pre-2018 seasons are only a handful of archived matches each, so they're merged
+into one honestly-labelled "Classics" bucket. They happen to be the best matches ever
+recorded: Maradona's 1986 Argentina (including the quarter-final against England),
+Pelé's Brazil in 1958/1962/1970, and Cruyff's Netherlands in 1974.
 
 Built on **[StatsBomb Open Data](https://github.com/statsbomb/open-data)**. No API
 key, no backend, nothing to babysit: the goal data is baked into a static JSON file
