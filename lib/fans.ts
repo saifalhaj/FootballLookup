@@ -65,6 +65,78 @@ const LEGENDS: Legend[] = [
     season: "1958", player: /Pelé/, minute: 90, tag: "AGED SEVENTEEN",
     note: "A looping header to finish the final. He wept on the pitch afterwards.",
   },
+
+  // Men's 2022
+  {
+    season: "2022", player: /Richarlison/, minute: 72, tag: "GOAL OF THE TOURNAMENT",
+    note: "Chest, touch up, scissor kick from thirteen yards. Nobody scored better in 2022.",
+  },
+  {
+    season: "2022", player: /Al Dawsari/, minute: 52, tag: "THE UPSET",
+    note: "Turned two defenders and bent it into the top corner from twenty-three yards — Saudi Arabia beat the eventual champions.",
+  },
+  {
+    season: "2022", player: /Chávez/, minute: 51, tag: "FROM THIRTY-THREE YARDS",
+    note: "A free kick from thirty-three yards, straight into the top corner.",
+  },
+  {
+    season: "2022", player: /Messi/, minute: 107, tag: "THE FINAL",
+    note: "Extra time in the final, bundled in from five yards. Argentina thought they had won it.",
+  },
+  {
+    season: "2022", player: /Mbapp/, minute: 80, tag: "2–2 FROM NOWHERE",
+    note: "A volley on the turn from eighteen yards, ninety seconds after his penalty. The final started again.",
+  },
+  {
+    season: "2022", player: /Mbapp/, minute: 117, tag: "HAT-TRICK IN A FINAL",
+    note: "The first since 1966 — and it still wasn't enough.",
+  },
+
+  // Men's 2018
+  {
+    season: "2018", player: /Pavard/, minute: 56, tag: "GOAL OF THE TOURNAMENT",
+    note: "A first-time volley from twenty-six yards into the far top corner. The best goal of 2018.",
+  },
+  {
+    season: "2018", player: /Ronaldo/, minute: 87, tag: "THE HAT-TRICK",
+    note: "A free kick over the wall from twenty-four yards to rescue a 3–3 against Spain.",
+  },
+  {
+    season: "2018", player: /Kroos/, minute: 94, tag: "LAST TOUCH OF THE GAME",
+    note: "Ninety-fourth minute, a free kick into the top corner from twenty-two yards. A one-in-a-hundred shot.",
+  },
+  {
+    season: "2018", player: /Mandžukić/, minute: 108, tag: "CROATIA'S FIRST FINAL",
+    note: "Extra time against England, nine yards out — and Croatia were in a World Cup final.",
+  },
+  {
+    season: "2018", player: /Quaresma/, minute: 44, tag: "THE OUTSIDE OF THE BOOT",
+    note: "Bent in with the outside of his right foot from twenty-five yards.",
+  },
+
+  // Women's 2023
+  {
+    season: "2023", player: /Carmona/, minute: 28, tag: "WON THE WORLD CUP",
+    note: "Low into the corner from twenty yards — the only goal of the final.",
+  },
+  {
+    season: "2023", player: /Caicedo/, minute: 51, tag: "EIGHTEEN YEARS OLD",
+    note: "Cut inside and found the very top corner against Germany, at eighteen.",
+  },
+  {
+    season: "2023", player: /Kerr/, minute: 62, tag: "SEMI-FINAL THUNDERBOLT",
+    note: "Twenty-five yards, on the run, into the corner — and Australia were level in the semi-final.",
+  },
+
+  // Women's 2019
+  {
+    season: "2019", player: /Marta/, minute: 73, tag: "THE ALL-TIME RECORD",
+    note: "A penalty for her seventeenth World Cup goal — more than anyone has scored, in the women's game or the men's.",
+  },
+  {
+    season: "2019", player: /Bronze/, minute: 56, tag: "SCREAMER",
+    note: "Twenty-one yards, struck into the roof of the net.",
+  },
 ];
 
 export function legendOf(g: Goal): Legend | null {
