@@ -5,7 +5,11 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const BASE = "https://raw.githubusercontent.com/statsbomb/open-data/master/data";
+// Pinned to an immutable commit SHA rather than the mutable `master` ref, so a
+// re-bake is deterministic and can't silently pull different upstream data.
+// Bump this SHA deliberately when you want newer data, then diff goals.json.
+const SB_REF = "b0bc9f22dd77c206ddedc1d742893b3bbe64baec";
+const BASE = `https://raw.githubusercontent.com/statsbomb/open-data/${SB_REF}/data`;
 const YARD = 0.9144; // StatsBomb pitch units are yards; we render in metres
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "data");
 
