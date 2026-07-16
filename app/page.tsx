@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import GoalGalaxy, { type Goal } from "@/components/GoalGalaxy";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   computeHighlights,
   describe,
@@ -25,6 +26,7 @@ export default function Home() {
   const [team, setTeam] = useState<string>("");
   const [replayAllNonce, setReplayAllNonce] = useState(0);
   const [focusNonce, setFocusNonce] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
     fetch("data/goals.json")
@@ -32,9 +34,29 @@ export default function Home() {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.json();
       })
-      .then(setData)
+      .then((json: Payload) => {
+        // Guard against a malformed re-bake: route bad shape into the error UI
+        // rather than silently rendering an empty galaxy.
+        if (!Array.isArray(json?.tournaments) || !Array.isArray(json?.goals)) {
+          throw new Error("bad shape");
+        }
+        setData(json);
+      })
       .catch(() => setError("Couldn't load the goals data."));
   }, []);
+
+  // Honour the OS "reduce motion" preference: pause the auto-tour and (in the
+  // scene) stop the camera auto-rotation, the fly-in, and the marker pulse.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReducedMotion(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+  useEffect(() => {
+    if (reducedMotion) setPlaying(false);
+  }, [reducedMotion]);
 
   const tournaments = useMemo(() => data?.tournaments ?? [], [data]);
   const current = tournaments.find((t) => t.id === tid) ?? tournaments[0];
@@ -100,13 +122,18 @@ export default function Home() {
   return (
     <main>
       {data && goals.length > 0 && (
-        <GoalGalaxy
-          goals={goals}
-          highlights={showAll ? allSet : tourSet}
-          focusId={focusId}
-          replayAllNonce={replayAllNonce}
-          focusNonce={focusNonce}
-        />
+        <ErrorBoundary
+          fallback={<div className="loading">Your browser couldn&rsquo;t render the 3D view.</div>}
+        >
+          <GoalGalaxy
+            goals={goals}
+            highlights={showAll ? allSet : tourSet}
+            focusId={focusId}
+            replayAllNonce={replayAllNonce}
+            focusNonce={focusNonce}
+            reducedMotion={reducedMotion}
+          />
+        </ErrorBoundary>
       )}
 
       <div className="overlay">

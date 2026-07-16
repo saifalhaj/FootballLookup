@@ -63,21 +63,26 @@ type Arc = {
 
 function buildArcs(goals: Goal[]): Arc[] {
   const N = 48;
+  const fin = (v: number) => (Number.isFinite(v) ? v : 0);
   return goals.map((g) => {
-    const imp = g.xg == null ? 0.5 : 1 - Math.max(0, Math.min(1, g.xg));
+    // Coerce any non-finite coordinate to 0 so one malformed record can't poison
+    // the buffer with NaN geometry. (The fetch-level shape check is the primary
+    // guard; this keeps arc indices aligned 1:1 with the goals array.)
+    const ox = fin(g.ox), oz = fin(g.oz), tx = fin(g.tx), ty = fin(g.ty);
+    const imp = g.xg == null || !Number.isFinite(g.xg) ? 0.5 : 1 - Math.max(0, Math.min(1, g.xg));
     // Only two points of each flight are measured: where it was struck and
     // where it crossed the line. The curve between is inferred, so keep it
     // physically motivated rather than decorative — longer shots and higher
     // finishes arc more. (It used to be driven by xG, which implied ball-flight
     // data that does not exist.)
-    const dist = Math.hypot(g.ox, g.oz);
-    const loft = 0.25 + dist * 0.055 + g.ty * 0.35;
+    const dist = Math.hypot(ox, oz);
+    const loft = 0.25 + dist * 0.055 + ty * 0.35;
     const pos: number[] = [];
     for (let i = 0; i <= N; i++) {
       const t = i / N;
-      const x = g.ox + (g.tx - g.ox) * t;
-      const z = g.oz * (1 - t);
-      const y = g.ty * t + 4 * loft * t * (1 - t);
+      const x = ox + (tx - ox) * t;
+      const z = oz * (1 - t);
+      const y = ty * t + 4 * loft * t * (1 - t);
       pos.push(x, y, z);
     }
     const geom = new THREE.BufferGeometry();
@@ -97,7 +102,7 @@ function buildArcs(goals: Goal[]): Arc[] {
       pts: pos,
       count: N + 1,
       color,
-      end: new THREE.Vector3(g.tx, g.ty, 0),
+      end: new THREE.Vector3(tx, ty, 0),
       // Flight time scales with distance, so a thirty-yard strike hangs in the
       // air and a tap-in is instant — when they all replay at once, the galaxy
       // resolves in order of distance.
@@ -163,14 +168,31 @@ function Scene({
   focusId,
   replayAllNonce,
   focusNonce,
+  reduced,
 }: {
   goals: Goal[];
   highlights: Set<number>;
   focusId: number | null;
   replayAllNonce: number;
   focusNonce: number;
+  reduced: boolean;
 }) {
   const arcs = useMemo(() => buildArcs(goals), [goals]);
+
+  // R3F never disposes objects passed via <primitive>. Each arc owns its own
+  // geometry + material (no sharing), so free the superseded set ourselves when
+  // `arcs` is rebuilt (tournament switch) or the scene unmounts — otherwise the
+  // old GPU buffers leak. Cleanup closes over the outgoing arcs and runs after
+  // React has committed the new set, so nothing live is ever disposed.
+  useEffect(() => {
+    return () => {
+      for (const a of arcs) {
+        a.line.geometry.dispose();
+        a.mat.dispose();
+      }
+    };
+  }, [arcs]);
+
   const nowRef = useRef(0);
   const balls = useRef<THREE.InstancedMesh>(null);
   const flashes = useRef<THREE.InstancedMesh>(null);
@@ -182,11 +204,18 @@ function Scene({
       idxs.forEach((i, k) => {
         const a = arcs[i];
         if (!a) return;
-        a.replayAt = t0 + k * stagger;
-        a.flashAt = null;
+        if (reduced) {
+          // Reduced-motion: no ball flight — snap the trail to fully drawn.
+          a.line.geometry.setDrawRange(0, a.count);
+          a.replayAt = null;
+          a.flashAt = null;
+        } else {
+          a.replayAt = t0 + k * stagger;
+          a.flashAt = null;
+        }
       });
     },
-    [arcs],
+    [arcs, reduced],
   );
 
   // Tint each ball and impact flash to match its arc.
@@ -271,7 +300,7 @@ function Scene({
     }
     if (bm) bm.instanceMatrix.needsUpdate = true;
     if (fm) fm.instanceMatrix.needsUpdate = true;
-    if (marker.current) marker.current.scale.setScalar(1 + Math.sin(t * 3) * 0.18);
+    if (marker.current) marker.current.scale.setScalar(reduced ? 1 : 1 + Math.sin(t * 3) * 0.18);
   });
 
   const focus = focusId != null ? goals[focusId] : null;
@@ -313,12 +342,14 @@ export default function GoalGalaxy({
   focusId,
   replayAllNonce = 0,
   focusNonce = 0,
+  reducedMotion = false,
 }: {
   goals: Goal[];
   highlights: Set<number>;
   focusId: number | null;
   replayAllNonce?: number;
   focusNonce?: number;
+  reducedMotion?: boolean;
 }) {
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   useEffect(() => {
@@ -356,11 +387,12 @@ export default function GoalGalaxy({
           focusId={focusId}
           replayAllNonce={replayAllNonce}
           focusNonce={focusNonce}
+          reduced={reducedMotion}
         />
         <OrbitControls
           target={[0, 1.2, 0.2]}
           enablePan={false}
-          autoRotate
+          autoRotate={!reducedMotion}
           autoRotateSpeed={0.24}
           minDistance={10}
           maxDistance={34}
@@ -368,7 +400,7 @@ export default function GoalGalaxy({
           maxPolarAngle={Math.PI * 0.52}
         />
         <EffectComposer>
-          <Bloom intensity={1.45} luminanceThreshold={0.0} luminanceSmoothing={0.32} mipmapBlur radius={0.72} />
+          <Bloom intensity={1.45} luminanceThreshold={0.1} luminanceSmoothing={0.32} mipmapBlur radius={0.72} />
         </EffectComposer>
       </Canvas>
     </div>
