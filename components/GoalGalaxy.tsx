@@ -129,9 +129,11 @@ function GoalFrame() {
   const obj = useMemo(() => {
     const g = new THREE.Group();
     const NZ = -1.9;
-    const frameMat = new THREE.LineBasicMaterial({ color: 0x9fb4d0, transparent: true, opacity: 0.5 });
-    const netMat = new THREE.LineBasicMaterial({ color: 0x6f88a8, transparent: true, opacity: 0.13 });
-    const groundMat = new THREE.LineBasicMaterial({ color: 0x3f8a5f, transparent: true, opacity: 0.22 });
+    // Neutral greys — no blue or green tint. The pitch is monochrome; only the
+    // goals carry colour.
+    const frameMat = new THREE.LineBasicMaterial({ color: 0xcfcfd4, transparent: true, opacity: 0.42 });
+    const netMat = new THREE.LineBasicMaterial({ color: 0x8f8f95, transparent: true, opacity: 0.12 });
+    const groundMat = new THREE.LineBasicMaterial({ color: 0x707074, transparent: true, opacity: 0.2 });
     const seg = (p: number[], m: THREE.Material) => {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.Float32BufferAttribute(p, 3));
@@ -346,8 +348,8 @@ export default function GoalGalaxy({
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <color attach="background" args={[0.024, 0.035, 0.055]} />
-        <fog attach="fog" args={[0x060910, 26, 52]} />
+        <color attach="background" args={[0.014, 0.014, 0.016]} />
+        <fog attach="fog" args={[0x060606, 26, 52]} />
         <Scene
           goals={goals}
           highlights={highlights}
@@ -366,7 +368,7 @@ export default function GoalGalaxy({
           maxPolarAngle={Math.PI * 0.52}
         />
         <EffectComposer>
-          <Bloom intensity={1.15} luminanceThreshold={0.02} luminanceSmoothing={0.3} mipmapBlur radius={0.7} />
+          <Bloom intensity={1.45} luminanceThreshold={0.0} luminanceSmoothing={0.32} mipmapBlur radius={0.72} />
         </EffectComposer>
       </Canvas>
     </div>

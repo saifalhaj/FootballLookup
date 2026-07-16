@@ -1,10 +1,11 @@
 :root {
-  --bg: #060910;
-  --ink: #eef3fb;
-  --ink-dim: #93a3ba;
-  --amber: #ffb23d;
-  --line: #1a2535;
-  --line-2: #283a52;
+  --bg: #050505;
+  --ink: #f4f4f5;
+  --ink-dim: #9a9a9e;
+  /* Monochrome chrome — the only colour in the whole app lives in the goals. */
+  --accent: #f2f2f4;
+  --line: #1c1c1e;
+  --line-2: #343438;
   --display: -apple-system, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -19,16 +20,16 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
 .overlay { position: fixed; inset: 0; pointer-events: none; z-index: 2; }
 .overlay a { pointer-events: auto; }
 
-.masthead { position: absolute; top: clamp(20px, 4vw, 46px); left: clamp(20px, 4vw, 46px); max-width: 30ch; text-shadow: 0 2px 22px rgba(6, 9, 16, 0.85), 0 0 6px rgba(6, 9, 16, 0.7); }
+.masthead { position: absolute; top: clamp(20px, 4vw, 46px); left: clamp(20px, 4vw, 46px); max-width: 30ch; text-shadow: 0 2px 22px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.75); }
 .eyebrow {
   font-family: var(--mono); font-size: .72rem; letter-spacing: .22em;
-  text-transform: uppercase; color: var(--amber); margin: 0 0 10px;
+  text-transform: uppercase; color: var(--accent); margin: 0 0 10px;
 }
 .title {
   font-size: clamp(2.4rem, 6vw, 4.4rem); font-weight: 800; line-height: .9;
   letter-spacing: -.02em; text-transform: uppercase; margin: 0;
 }
-.title .lit { color: var(--amber); text-shadow: 0 0 34px rgba(255,178,61,.4); }
+.title .lit { color: #ffffff; text-shadow: 0 0 34px rgba(255,255,255,.32); }
 .sub { margin: 16px 0 0; color: var(--ink-dim); font-size: 1rem; line-height: 1.5; max-width: 34ch; }
 .sub b { color: var(--ink); font-weight: 600; }
 
@@ -50,7 +51,7 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
   color: #5c6b81; line-height: 1.7;
 }
 .credit a { color: #8090a6; text-decoration: none; border-bottom: 1px solid #26313f; }
-.credit a:hover { color: var(--amber); border-color: var(--amber); }
+.credit a:hover { color: var(--accent); border-color: var(--accent); }
 
 .hud {
   position: absolute; top: clamp(20px, 4vw, 46px); right: clamp(20px, 4vw, 46px);
@@ -74,12 +75,12 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
 .toggle, .picker {
   cursor: pointer;
   font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink-dim); background: rgba(15, 24, 38, 0.55); border: 1px solid var(--line-2);
+  color: var(--ink-dim); background: rgba(16, 16, 18, 0.6); border: 1px solid var(--line-2);
   padding: 9px 14px; border-radius: 100px;
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   transition: color .2s, border-color .2s;
 }
-.toggle:hover, .picker:hover { color: var(--amber); border-color: var(--amber); }
+.toggle:hover, .picker:hover { color: var(--accent); border-color: var(--accent); }
 .picker {
   appearance: none; -webkit-appearance: none;
   padding-right: 30px; max-width: 190px;
@@ -90,9 +91,9 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
   background-repeat: no-repeat;
 }
 .picker:focus-visible, .toggle:focus-visible, .card-nav button:focus-visible {
-  outline: 2px solid var(--amber); outline-offset: 2px;
+  outline: 2px solid var(--accent); outline-offset: 2px;
 }
-.picker option { background: #0f1826; color: var(--ink); text-transform: none; }
+.picker option { background: #101012; color: var(--ink); text-transform: none; }
 
 /* ---- fan-facing goal card ---- */
 .card {
@@ -101,7 +102,7 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
   display: flex; align-items: center; gap: 18px;
   width: min(680px, calc(100vw - 36px));
   padding: 15px 18px;
-  background: rgba(10, 16, 25, 0.72); border: 1px solid var(--line-2);
+  background: rgba(12, 12, 14, 0.74); border: 1px solid var(--line-2);
   border-radius: 16px; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   box-shadow: 0 14px 44px rgba(0, 0, 0, 0.45);
 }
@@ -112,7 +113,7 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
 .card-tag {
   font-family: var(--mono); font-size: .58rem; letter-spacing: .12em;
   padding: 3px 7px; border-radius: 5px; white-space: nowrap;
-  background: rgba(255, 178, 61, 0.16); color: var(--amber); border: 1px solid rgba(255, 178, 61, 0.32);
+  background: rgba(255, 255, 255, 0.1); color: var(--ink); border: 1px solid rgba(255, 255, 255, 0.22);
 }
 .card-match { font-family: var(--mono); font-size: .73rem; color: var(--ink-dim); margin-top: 3px; letter-spacing: .01em; }
 .card-desc { font-size: .95rem; color: var(--ink); margin-top: 6px; }
@@ -123,7 +124,7 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
   width: 34px; height: 34px; border-radius: 9px; font-size: 1rem;
   display: grid; place-items: center; transition: background .15s, border-color .15s;
 }
-.card-nav button:hover { background: rgba(255, 178, 61, 0.14); border-color: var(--amber); }
+.card-nav button:hover { background: rgba(255, 255, 255, 0.12); border-color: var(--accent); }
 .card-count { font-family: var(--mono); font-size: .72rem; color: var(--ink-dim); min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
 .card-play { font-size: .72rem !important; }
 
@@ -137,12 +138,12 @@ body { font-family: var(--display); -webkit-font-smoothing: antialiased; overflo
 .replay-all {
   pointer-events: auto; cursor: pointer; margin-top: 14px;
   font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--bg); background: var(--amber); border: 1px solid var(--amber);
+  color: var(--bg); background: var(--accent); border: 1px solid var(--accent);
   padding: 10px 18px; border-radius: 100px; font-weight: 600;
-  box-shadow: 0 0 26px rgba(255, 178, 61, .38);
+  box-shadow: 0 0 26px rgba(255, 255, 255, .3);
   transition: transform .15s, box-shadow .15s;
 }
-.replay-all:hover { transform: translateY(-1px); box-shadow: 0 0 34px rgba(255, 178, 61, .55); }
+.replay-all:hover { transform: translateY(-1px); box-shadow: 0 0 34px rgba(255, 255, 255, .5); }
 .replay-all:active { transform: translateY(0); }
 
 @media (max-width: 720px) {
